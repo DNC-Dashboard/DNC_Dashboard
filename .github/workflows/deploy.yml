@@ -25,7 +25,7 @@ jobs:
       #   run: npm run build
 
       - name: Rsync code to server
-        uses: burnett01/rsync-deployments@7.1
+        uses: burnett01/rsync-deployments@7.0
         with:
           switches: -avz --delete \
             --exclude='.git*' \
