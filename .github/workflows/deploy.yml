@@ -40,4 +40,9 @@ jobs:
 
       - name: Run deploy script on server
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} /home/dncouncil/apps/mydjango/deploy.sh
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} '
+            set -e
+            sed -i "s/\r$//" /home/dncouncil/apps/mydjango/deploy.sh || true
+            chmod +x /home/dncouncil/apps/mydjango/deploy.sh || true
+            /bin/bash /home/dncouncil/apps/mydjango/deploy.sh
+          '
