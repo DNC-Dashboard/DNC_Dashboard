@@ -13,43 +13,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # --- Front-end build (optional) ---
-      # If your template needs a JS build, uncomment:
-      # - name: Setup Node
-      #   uses: actions/setup-node@v4
-      #   with:
-      #     node-version: '20'
-      # - name: Install JS deps
-      #   run: npm ci
-      # - name: Build assets
-      #   run: npm run build
+      - name: Install rsync + ssh client
+        run: sudo apt-get update && sudo apt-get install -y rsync openssh-client
+
+      - name: Configure SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # For simplicity we skip host-key checking (you can replace with ssh-keyscan for stricter security)
+          printf "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
 
       - name: Rsync code to server
-        uses: burnett01/rsync-deployments@7.0
-        with:
-          switches: -avz --delete \
+        run: |
+          rsync -az --delete \
             --exclude='.git*' \
             --exclude='.github' \
             --exclude='node_modules' \
-            --exclude='venv' \
-            --exclude='.venv' \
+            --exclude='venv' --exclude='.venv' \
             --exclude='__pycache__' \
             --exclude='.env' \
             --exclude='db.sqlite3' \
             --exclude='media' \
-            --exclude='staticfiles'
-          path: ./
-          remote_path: /home/dncouncil/apps/mydjango/
-          remote_host: ${{ secrets.SSH_HOST }}
-          remote_user: ${{ secrets.SSH_USER }}
-          remote_key: ${{ secrets.SSH_KEY }}
+            --exclude='staticfiles' \
+            ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/dncouncil/apps/mydjango/
 
       - name: Run deploy script on server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          script_stop: true
-          script: |
-            /home/dncouncil/apps/mydjango/deploy.sh
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} /home/dncouncil/apps/mydjango/deploy.sh
