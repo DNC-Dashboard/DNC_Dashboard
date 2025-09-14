@@ -22,4 +22,9 @@ def analytics(request):
 
 
     
+def task_management(request):
+    return render(request, "pages/task_management.html")
+
+
+
     
