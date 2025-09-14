@@ -13,4 +13,13 @@ def index(request):
 def members(request):
     return render(request, 'pages/members.html')
 
+
+
+
+# Create your views below 👇👇👇
+def analytics(request):
+    return render(request, "pages/analytics.html")
+
+
+    
     
