@@ -19,6 +19,9 @@ def members(request):
 # Create your views below 👇👇👇
 
 
+def analytics(request):
+    return render(request, "pages/analytics.html")
+
     
 def task_management(request):
     return render(request, "pages/task_management.html")
