@@ -26,8 +26,23 @@ def analytics(request):
 
 
     
+def analytics(request):
+    return render(request, "pages/analytics.html")
+
 def task_management(request):
     return render(request, "pages/task_management.html")
+
+    
+def campaigns(request):
+    return render(request, "pages/campaigns.html")
+
+ 
+def nomand(request):
+    return render(request, "pages/nomand.html")
+
+ 
+def configuration(request):
+    return render(request, "pages/configuration.html")
 
 
 
