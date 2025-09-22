@@ -24,6 +24,15 @@
  
   <li class="nav-item">
     <a
+      href="{% url 'analytics' %}"
+      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
+    >
+      <i class="nav-icon fas fa-chart-line"></i>
+      <p>Analytics</p>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a
       href="{% url 'task_management' %}"
       class="nav-link {% if 'gallery' in segment %} active {% endif %}"
     >
@@ -33,7 +42,7 @@
   </li>
   <li class="nav-item">
     <a
-      href="{% url 'task_management' %}"
+      href="{% url 'campaigns' %}"
       class="nav-link {% if 'gallery' in segment %} active {% endif %}"
     >
       <i class="nav-icon fas fa-ad"></i>
@@ -42,7 +51,7 @@
   </li>
   <li class="nav-item">
     <a
-      href="{% url 'index' %}"
+      href="{% url 'nomand' %}"
       class="nav-link {% if 'gallery' in segment %} active {% endif %}"
     >
       <i class="nav-icon fas fa-user"></i>
@@ -51,7 +60,7 @@
   </li>
   <li class="nav-item">
     <a
-      href="{% url 'index' %}"
+      href="{% url 'configuration' %}"
       class="nav-link {% if 'gallery' in segment %} active {% endif %}"
     >
       <i class="nav-icon fas fa-user-cog "></i>
@@ -102,9 +111,9 @@
  
  
   
-  <li class="nav-header">EXAMPLES</li>
+  <!-- <li class="nav-header">EXAMPLES</li> -->
  
-  <li class="nav-item">
+  <!-- <li class="nav-item">
     <a
       href="{% url 'examples_gallery' %}"
       class="nav-link {% if 'gallery' in segment %} active {% endif %}"
@@ -113,7 +122,7 @@
       <p>Gallery</p>
     </a>
   </li>
- 
+  -->
  
  
  
