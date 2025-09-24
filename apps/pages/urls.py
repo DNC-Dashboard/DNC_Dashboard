@@ -9,7 +9,9 @@ urlpatterns = [
     path('task_management/', views.task_management, name='task_management'),
     path('campaigns/', views.campaigns, name='campaigns'),
     path('nomand/', views.nomand, name='nomand'),
-    path('configuration/', views.configuration, name='configuration')
+
+    path('configuration/', views.configuration, name='configuration'),
+    path('assets/', views.assets, name='assets'),
 
    
 ]
