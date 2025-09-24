@@ -16,6 +16,8 @@ from dotenv import load_dotenv
 from str2bool import str2bool
 
 load_dotenv()  # take environment variables from .env.
+GA4_PROPERTY_ID = os.getenv("GA4_PROPERTY_ID")
+GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent

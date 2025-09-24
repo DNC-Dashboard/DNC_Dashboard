@@ -39,6 +39,9 @@ def nomand(request):
 def configuration(request):
     return render(request, "pages/configuration.html")
 
+def assets(request):
+    return render(request, "pages/assets.html")
+
 
 
     
