@@ -1,3 +1,19 @@
+Please look at the following document for push and pull guide.
+https://docs.google.com/document/d/18dQMZlWbIAt-EOXv-J-p1pGpYUgHnMiq_C0H8l2-44g/edit?pli=1&tab=t.0
+<br /> 
+
+
+Please watch the video to how contribute to the project 
+https://drive.google.com/file/d/1o8fSXVuh7BKWIA98LrC26Jib7-nIu5nU/view
+
+
+
+
+
+
+
+
+
 # [Django AdminLTE](https://app-generator.dev/product/adminlte/django/)
 
 **Open-source Django Starter** crafted on top of **[AdminLTE](https://app-generator.dev/product/adminlte/)**, an open-source `Bootstrap` Design. The product is designed to deliver the best possible user experience with highly customizable feature-rich pages. 
