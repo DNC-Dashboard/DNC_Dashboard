@@ -1,209 +1,352 @@
 {% extends 'layouts/base.html' %}
 {% load static %}
 {% block title %} Kanban Board {% endblock title %}
+
 {% block extrastyle %}
-<!-- Ekko Lightbox -->
 <link rel="stylesheet" href="{% static 'plugins/ekko-lightbox/ekko-lightbox.css' %}">
+<style>
+  .kanban .kanban-dropzone { min-height: 24px; padding-bottom: 2px; }
+  .kanban .kanban-item.dragging { opacity: .5; }
+  .kanban .drop-hover { outline: 2px dashed rgba(0,0,0,.2); outline-offset: 4px; }
+  .card-tools .btn-tool { cursor: pointer; }
+</style>
 {% endblock extrastyle %}
+
 {% block bodyclass %} hold-transition sidebar-mini {% endblock bodyclass %}
+
 {% block content %}
-  <!-- Content Wrapper. Contains page content -->
-  <div class="content-wrapper kanban">
-    <section class="content-header">
-      <div class="container-fluid">
-        <div class="row">
-          <div class="col-sm-6">
-            <h1>Kanban Board</h1>
-          </div>
-          <div class="col-sm-6 d-none d-sm-block">
-            <ol class="breadcrumb float-sm-right">
-              <li class="breadcrumb-item"><a href="#">Home</a></li>
-              <li class="breadcrumb-item active">Kanban Board</li>
-            </ol>
-          </div>
+<div class="content-wrapper kanban">
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row align-items-center">
+        <div class="col-sm-6">
+          <h1>Kanban Board</h1>
+        </div>
+        <div class="col-sm-6 d-none d-sm-flex justify-content-end">
+          <button id="btn-add-task" class="btn btn-primary">
+            <i class="fas fa-plus mr-1"></i> Add Task
+          </button>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="content pb-3">
-      <div class="container-fluid h-100">
-        <div class="card card-row card-secondary">
-          <div class="card-header">
-            <h3 class="card-title">
-              Backlog
-            </h3>
-          </div>
-          <div class="card-body">
-            <div class="card card-info card-outline">
-              <div class="card-header">
-                <h5 class="card-title">Create Labels</h5>
-                <div class="card-tools">
-                  <a href="#" class="btn btn-tool btn-link">#3</a>
-                  <a href="#" class="btn btn-tool">
-                    <i class="fas fa-pen"></i>
-                  </a>
-                </div>
-              </div>
-              <div class="card-body">
-                <div class="custom-control custom-checkbox">
-                  <input class="custom-control-input" type="checkbox" id="customCheckbox1" disabled>
-                  <label for="customCheckbox1" class="custom-control-label">Bug</label>
-                </div>
-                <div class="custom-control custom-checkbox">
-                  <input class="custom-control-input" type="checkbox" id="customCheckbox2" disabled>
-                  <label for="customCheckbox2" class="custom-control-label">Feature</label>
-                </div>
-                <div class="custom-control custom-checkbox">
-                  <input class="custom-control-input" type="checkbox" id="customCheckbox3" disabled>
-                  <label for="customCheckbox3" class="custom-control-label">Enhancement</label>
-                </div>
-                <div class="custom-control custom-checkbox">
-                  <input class="custom-control-input" type="checkbox" id="customCheckbox4" disabled>
-                  <label for="customCheckbox4" class="custom-control-label">Documentation</label>
-                </div>
-                <div class="custom-control custom-checkbox">
-                  <input class="custom-control-input" type="checkbox" id="customCheckbox5" disabled>
-                  <label for="customCheckbox5" class="custom-control-label">Examples</label>
-                </div>
-              </div>
-            </div>
-            <div class="card card-primary card-outline">
-              <div class="card-header">
-                <h5 class="card-title">Create Issue template</h5>
-                <div class="card-tools">
-                  <a href="#" class="btn btn-tool btn-link">#4</a>
-                  <a href="#" class="btn btn-tool">
-                    <i class="fas fa-pen"></i>
-                  </a>
-                </div>
-              </div>
-              <div class="card-body">
-                <div class="custom-control custom-checkbox">
-                  <input class="custom-control-input" type="checkbox" id="customCheckbox1_1" disabled>
-                  <label for="customCheckbox1_1" class="custom-control-label">Bug Report</label>
-                </div>
-                <div class="custom-control custom-checkbox">
-                  <input class="custom-control-input" type="checkbox" id="customCheckbox1_2" disabled>
-                  <label for="customCheckbox1_2" class="custom-control-label">Feature Request</label>
-                </div>
-              </div>
-            </div>
-            <div class="card card-primary card-outline">
-              <div class="card-header">
-                <h5 class="card-title">Create PR template</h5>
-                <div class="card-tools">
-                  <a href="#" class="btn btn-tool btn-link">#6</a>
-                  <a href="#" class="btn btn-tool">
-                    <i class="fas fa-pen"></i>
-                  </a>
-                </div>
-              </div>
-            </div>
-            <div class="card card-light card-outline">
-              <div class="card-header">
-                <h5 class="card-title">Create Actions</h5>
-                <div class="card-tools">
-                  <a href="#" class="btn btn-tool btn-link">#7</a>
-                  <a href="#" class="btn btn-tool">
-                    <i class="fas fa-pen"></i>
-                  </a>
-                </div>
+  <section class="content pb-3">
+    <div class="container-fluid h-100">
 
-              </div>
-              <div class="card-body">
-                <p>
-                  Lorem ipsum dolor sit amet, consectetuer adipiscing elit.
-                  Aenean commodo ligula eget dolor. Aenean massa.
-                  Cum sociis natoque penatibus et magnis dis parturient montes,
-                  nascetur ridiculus mus.
-                </p>
-              </div>
-            </div>
-          </div>
+      <!-- Backlog -->
+     
+
+      <!-- To Do -->
+      <div class="card card-row card-primary" data-status="todo">
+        <div class="card-header">
+          <h3 class="card-title">To Do</h3>
         </div>
-        <div class="card card-row card-primary">
-          <div class="card-header">
-            <h3 class="card-title">
-              To Do
-            </h3>
-          </div>
-          <div class="card-body">
-            <div class="card card-primary card-outline">
-              <div class="card-header">
-                <h5 class="card-title">Create first milestone</h5>
-                <div class="card-tools">
-                  <a href="#" class="btn btn-tool btn-link">#5</a>
-                  <a href="#" class="btn btn-tool">
-                    <i class="fas fa-pen"></i>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="card card-row card-default">
-          <div class="card-header bg-info">
-            <h3 class="card-title">
-              In Progress
-            </h3>
-          </div>
-          <div class="card-body">
-            <div class="card card-light card-outline">
-              <div class="card-header">
-                <h5 class="card-title">Update Readme</h5>
-                <div class="card-tools">
-                  <a href="#" class="btn btn-tool btn-link">#2</a>
-                  <a href="#" class="btn btn-tool">
-                    <i class="fas fa-pen"></i>
-                  </a>
-                </div>
-              </div>
-              <div class="card-body">
-                <p>
-                  Lorem ipsum dolor sit amet, consectetuer adipiscing elit.
-                  Aenean commodo ligula eget dolor. Aenean massa.
-                  Cum sociis natoque penatibus et magnis dis parturient montes,
-                  nascetur ridiculus mus.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="card card-row card-success">
-          <div class="card-header">
-            <h3 class="card-title">
-              Done
-            </h3>
-          </div>
-          <div class="card-body">
-            <div class="card card-primary card-outline">
-              <div class="card-header">
-                <h5 class="card-title">Create repo</h5>
-                <div class="card-tools">
-                  <a href="#" class="btn btn-tool btn-link">#1</a>
-                  <a href="#" class="btn btn-tool">
-                    <i class="fas fa-pen"></i>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div class="card-body kanban-dropzone" data-dropzone="todo">
+          <!-- items render here -->
         </div>
       </div>
-    </section>
+
+      <!-- In Progress -->
+      <div class="card card-row card-default" data-status="inprogress">
+        <div class="card-header bg-info">
+          <h3 class="card-title">In Progress</h3>
+        </div>
+        <div class="card-body kanban-dropzone" data-dropzone="inprogress">
+          <!-- items render here -->
+        </div>
+      </div>
+
+      <!-- Done -->
+      <div class="card card-row card-success" data-status="done">
+        <div class="card-header">
+          <h3 class="card-title">Done</h3>
+        </div>
+        <div class="card-body kanban-dropzone" data-dropzone="done">
+          <!-- items render here -->
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<!-- Modal: Add/Edit Task -->
+<div class="modal fade" id="taskModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" id="taskForm">
+      <div class="modal-header">
+        <h5 class="modal-title" id="taskModalTitle">Add Task</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="taskId">
+        <div class="form-group">
+          <label for="taskTitle">Title</label>
+          <input type="text" id="taskTitle" class="form-control" required maxlength="120">
+        </div>
+        <div class="form-group">
+          <label for="taskDesc">Description (optional)</label>
+          <textarea id="taskDesc" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="taskStatus">Status</label>
+          <select id="taskStatus" class="form-control">
+            <option value="backlog">Backlog</option>
+            <option value="todo">To Do</option>
+            <option value="inprogress">In Progress</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save mr-1"></i> Save
+        </button>
+      </div>
+    </form>
   </div>
+</div>
 {% endblock content %}
-{% block extra_scripts %}
-<!-- Ekko Lightbox -->
-<script src="{% static 'plugins/ekko-lightbox/ekko-lightbox.min.js' %}"></script>
-<!-- overlayScrollbars -->
-<script src="{% static 'plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js' %}"></script>
-<!-- Filterizr-->
-<script src="{% static 'plugins/filterizr/jquery.filterizr.min.js' %}"></script>
-<!-- Page specific script -->
-<script>
-  $(function () {
 
-  })
+{% block extra_scripts %}
+<script src="{% static 'plugins/ekko-lightbox/ekko-lightbox.min.js' %}"></script>
+<script src="{% static 'plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js' %}"></script>
+<script src="{% static 'plugins/filterizr/jquery.filterizr.min.js' %}"></script>
+
+<script>
+/**
+ * Simple client-side Kanban
+ * - drag & drop columns
+ * - add/edit/delete tasks
+ * - persists to localStorage
+ * Switch to a backend later by swapping save/load functions.
+ */
+(function () {
+  const LS_KEY = 'kanban.tasks.v1';
+
+  /** ---------- Storage ---------- **/
+  function loadTasks() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+  function saveTasks(tasks) {
+    localStorage.setItem(LS_KEY, JSON.stringify(tasks));
+  }
+
+  /** ---------- State ---------- **/
+  let tasks = loadTasks();
+  let dragId = null;
+
+  /** ---------- Rendering ---------- **/
+  const statusToCard = {
+    backlog:  { cls: 'card-info'     },
+    todo:     { cls: 'card-primary'  },
+    inprogress:{ cls: 'card-light'  },
+    done:     { cls: 'card-success'  },
+  };
+
+  function taskCardHTML(t) {
+    const meta = statusToCard[t.status] || statusToCard.backlog;
+    const desc = (t.desc || '').trim();
+    return `
+      <div class="card ${meta.cls} card-outline kanban-item" draggable="true" data-id="${t.id}">
+        <div class="card-header">
+          <h5 class="card-title">${escapeHtml(t.title)}</h5>
+          <div class="card-tools">
+            <a class="btn btn-tool btn-link">#${t.number || t.id.slice(-4)}</a>
+            <a class="btn btn-tool js-edit" title="Edit"><i class="fas fa-pen"></i></a>
+            <a class="btn btn-tool js-delete text-danger" title="Delete"><i class="fas fa-trash"></i></a>
+          </div>
+        </div>
+        ${desc ? `<div class="card-body"><p>${escapeHtml(desc)}</p></div>` : ``}
+      </div>
+    `;
+  }
+
+  function render() {
+    // clear all columns
+    document.querySelectorAll('.kanban-dropzone').forEach(z => z.innerHTML = '');
+    // group by status
+    const byStatus = tasks.reduce((acc, t) => {
+      (acc[t.status] = acc[t.status] || []).push(t);
+      return acc;
+    }, {});
+    Object.entries(byStatus).forEach(([status, list]) => {
+      const zone = document.querySelector(`.kanban-dropzone[data-dropzone="${status}"]`);
+      if (!zone) return;
+      // Keep order as in array
+      const html = list.map(taskCardHTML).join('');
+      zone.insertAdjacentHTML('beforeend', html);
+    });
+  }
+
+  /** ---------- Helpers ---------- **/
+  function uuid() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random()*16|0, v = c === 'x' ? r : (r&0x3|0x8);
+      return v.toString(16);
+    });
+  }
+  function escapeHtml(str) {
+    return (str || '').replace(/[&<>"']/g, m =>
+      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])
+    );
+  }
+
+  /** ---------- CRUD ---------- **/
+  function openModal({mode, task, defaultStatus}) {
+    const titleEl = document.getElementById('taskTitle');
+    const descEl  = document.getElementById('taskDesc');
+    const idEl    = document.getElementById('taskId');
+    const statusEl= document.getElementById('taskStatus');
+    document.getElementById('taskModalTitle').textContent = mode === 'edit' ? 'Edit Task' : 'Add Task';
+    if (mode === 'edit' && task) {
+      idEl.value = task.id;
+      titleEl.value = task.title || '';
+      descEl.value = task.desc || '';
+      statusEl.value = task.status || 'backlog';
+    } else {
+      idEl.value = '';
+      titleEl.value = '';
+      descEl.value = '';
+      statusEl.value = defaultStatus || 'backlog';
+    }
+    $('#taskModal').modal('show');
+    setTimeout(() => titleEl.focus(), 150);
+  }
+
+  function addTask(data) {
+    const t = {
+      id: uuid(),
+      title: data.title,
+      desc: data.desc || '',
+      status: data.status || 'backlog',
+      number: (tasks.length + 1)
+    };
+    tasks.push(t);
+    saveTasks(tasks);
+    render();
+  }
+
+  function updateTask(id, patch) {
+    const idx = tasks.findIndex(t => t.id === id);
+    if (idx === -1) return;
+    tasks[idx] = { ...tasks[idx], ...patch };
+    saveTasks(tasks);
+    render();
+  }
+
+  function deleteTask(id) {
+    tasks = tasks.filter(t => t.id !== id);
+    saveTasks(tasks);
+    render();
+  }
+
+  /** ---------- Drag & Drop ---------- **/
+  function onDragStart(e) {
+    const item = e.target.closest('.kanban-item');
+    if (!item) return;
+    dragId = item.dataset.id;
+    item.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  }
+  function onDragEnd(e) {
+    const item = e.target.closest('.kanban-item');
+    if (item) item.classList.remove('dragging');
+    dragId = null;
+    document.querySelectorAll('.kanban-dropzone').forEach(el => el.classList.remove('drop-hover'));
+  }
+  function onDragOver(e) {
+    const zone = e.target.closest('.kanban-dropzone');
+    if (!zone) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    zone.classList.add('drop-hover');
+  }
+  function onDragLeave(e) {
+    const zone = e.target.closest('.kanban-dropzone');
+    if (zone) zone.classList.remove('drop-hover');
+  }
+  function onDrop(e) {
+    const zone = e.target.closest('.kanban-dropzone');
+    if (!zone || !dragId) return;
+    e.preventDefault();
+    zone.classList.remove('drop-hover');
+    const newStatus = zone.dataset.dropzone;
+    updateTask(dragId, { status: newStatus });
+  }
+
+  /** ---------- Event wiring ---------- **/
+  // Add Task
+  document.getElementById('btn-add-task').addEventListener('click', () => {
+    openModal({ mode: 'add', defaultStatus: 'backlog' });
+  });
+
+  // Submit modal
+  document.getElementById('taskForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const id = document.getElementById('taskId').value.trim();
+    const title = document.getElementById('taskTitle').value.trim();
+    const desc = document.getElementById('taskDesc').value.trim();
+    const status = document.getElementById('taskStatus').value;
+    if (!title) return;
+    if (id) {
+      updateTask(id, { title, desc, status });
+    } else {
+      addTask({ title, desc, status });
+    }
+    $('#taskModal').modal('hide');
+  });
+
+  // Delegated edit/delete + drag events
+  document.addEventListener('click', function (e) {
+    const editBtn = e.target.closest('.js-edit');
+    const delBtn  = e.target.closest('.js-delete');
+    if (editBtn) {
+      const card = editBtn.closest('.kanban-item');
+      const t = tasks.find(x => x.id === card.dataset.id);
+      if (t) openModal({ mode: 'edit', task: t });
+    }
+    if (delBtn) {
+      const card = delBtn.closest('.kanban-item');
+      const id = card.dataset.id;
+      if (confirm('Delete this task?')) deleteTask(id);
+    }
+  });
+
+  // Drag listeners
+  document.addEventListener('dragstart', onDragStart);
+  document.addEventListener('dragend', onDragEnd);
+  document.querySelectorAll('.kanban-dropzone').forEach(zone => {
+    zone.addEventListener('dragover', onDragOver);
+    zone.addEventListener('dragleave', onDragLeave);
+    zone.addEventListener('drop', onDrop);
+  });
+
+  /** ---------- Initial seed (optional) ---------- **/
+  if (tasks.length === 0) {
+    tasks = [
+      { id: uuid(), title: 'Create Labels', desc: '', status: 'backlog', number: 3 },
+      { id: uuid(), title: 'Create Issue template', desc: '', status: 'backlog', number: 4 },
+      { id: uuid(), title: 'Create PR template', desc: '', status: 'backlog', number: 6 },
+      { id: uuid(), title: 'Create Actions', desc: 'Lorem ipsum…', status: 'backlog', number: 7 },
+      { id: uuid(), title: 'Create first milestone', desc: '', status: 'todo', number: 5 },
+      { id: uuid(), title: 'Update Readme', desc: 'Lorem ipsum…', status: 'inprogress', number: 2 },
+      { id: uuid(), title: 'Create repo', desc: '', status: 'done', number: 1 },
+    ];
+    saveTasks(tasks);
+  }
+
+  // Initial render
+  render();
+})();
 </script>
 {% endblock extra_scripts %}

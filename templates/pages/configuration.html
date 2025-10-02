@@ -1,13 +1,19 @@
-{% extends 'layouts/base.html' %} {% load static %} {% block title %} Widgets {% endblock title %} {% block bodyclass %} hold-transition sidebar-mini {% endblock bodyclass %} {% block content %}
+{% extends 'layouts/base.html' %}
+{% load static %}
 
+{% block title %} Admin Configuration {% endblock title %}
+{% block bodyclass %} hold-transition sidebar-mini {% endblock bodyclass %}
+
+{% block content %}
 <div class="content-wrapper">
-  <div class="content-header">
+  <!-- Page Header -->
+  <section class="content-header">
     <div class="container-fluid">
       <div class="row mb-2">
         <div class="col-sm-6">
           <h1 class="m-0">Admin Configuration</h1>
+          <div class="text-muted small">Manage your account security and preferences.</div>
         </div>
-        <!-- /.col -->
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="#">Home</a></li>
@@ -16,13 +22,283 @@
         </div>
       </div>
     </div>
-  </div>
+  </section>
 
+  <!-- Content -->
   <section class="content">
     <div class="container-fluid">
-      <!-- Add your contennt here -->
+
+      <div class="row">
+        <!-- Left column: Security -->
+        <div class="col-lg-7">
+          <div class="card card-primary card-outline">
+            <div class="card-header d-flex align-items-center justify-content-between">
+              <h3 class="card-title mb-0"><i class="fas fa-shield-alt mr-2"></i>Change Password</h3>
+              <span class="text-muted small">Keep your account secure</span>
+            </div>
+            <div class="card-body">
+              <!-- IMPORTANT:
+                   Default action points to the built-in Django auth URL when you have:
+                   path("accounts/", include("django.contrib.auth.urls"))
+                   If your project uses a different prefix, update the action below.
+              -->
+              <form id="passwordChangeForm" action="/accounts/password_change/" method="post" novalidate>
+                {% csrf_token %}
+
+                <!-- Old password -->
+                <div class="form-group">
+                  <label for="id_old_password">Current password</label>
+                  <div class="input-group">
+                    <input type="password" name="old_password" class="form-control" id="id_old_password" required autocomplete="current-password" placeholder="Enter current password">
+                    <div class="input-group-append">
+                      <button class="btn btn-outline-secondary btn-toggle" type="button" data-target="#id_old_password" title="Show/Hide">
+                        <i class="far fa-eye"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <small class="form-text text-muted">This is your existing password.</small>
+                </div>
+
+                <!-- New password -->
+                <div class="form-group mb-1">
+                  <label for="id_new_password1">New password</label>
+                  <div class="input-group">
+                    <input type="password" name="new_password1" class="form-control" id="id_new_password1" required autocomplete="new-password" placeholder="Choose a strong password">
+                    <div class="input-group-append">
+                      <button class="btn btn-outline-secondary btn-toggle" type="button" data-target="#id_new_password1" title="Show/Hide">
+                        <i class="far fa-eye"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Strength meter -->
+                <div class="mb-2">
+                  <div class="progress progress-xxs">
+                    <div id="pwdStrengthBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                  </div>
+                  <small id="pwdStrengthText" class="text-muted">Strength: —</small>
+                </div>
+
+                <!-- Confirm new password -->
+                <div class="form-group">
+                  <label for="id_new_password2">Confirm new password</label>
+                  <div class="input-group">
+                    <input type="password" name="new_password2" class="form-control" id="id_new_password2" required autocomplete="new-password" placeholder="Re-enter new password">
+                    <div class="input-group-append">
+                      <button class="btn btn-outline-secondary btn-toggle" type="button" data-target="#id_new_password2" title="Show/Hide">
+                        <i class="far fa-eye"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <small id="matchHelp" class="form-text text-muted">Both passwords must match.</small>
+                </div>
+
+                <!-- Submit -->
+                <div class="d-flex align-items-center">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save mr-1"></i> Update Password
+                  </button>
+                  <span id="formFeedback" class="ml-3 small"></span>
+                </div>
+              </form>
+            </div>
+            <div class="card-footer">
+              <div class="small text-muted">
+                Tip: Use at least 12 characters with a mix of letters, numbers, and symbols. Avoid common words or reused passwords.
+              </div>
+            </div>
+          </div>
+
+          <!-- Optional: Admin fallback links (no reverse usage) -->
+          <div class="card">
+            <div class="card-body p-2">
+              <div class="small">
+                Having trouble? You can also try:
+                <ul class="mb-0">
+                  <li><a href="/accounts/password_change/">/accounts/password_change/</a> (built-in Django auth)</li>
+                  <li><a href="/admin/password_change/">/admin/password_change/</a> (Django admin)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column: Account info & sessions -->
+        <div class="col-lg-5">
+          <!-- Account Summary -->
+          <div class="card card-outline card-secondary">
+            <div class="card-header">
+              <h3 class="card-title mb-0"><i class="far fa-user mr-2"></i>Account Overview</h3>
+            </div>
+            <div class="card-body">
+              <div class="media">
+                <img class="img-size-64 img-circle mr-3 elevation-2" src="{% static 'dist/img/avatar.png' %}" alt="Avatar">
+                <div class="media-body">
+                  <h5 class="mt-0 mb-1">{{ request.user.get_full_name|default:request.user.username }}</h5>
+                  <div class="text-muted small mb-2">{{ request.user.email|default:"no-email@local" }}</div>
+                  <div class="small">
+                    <span class="badge badge-light border mr-1">Member</span>
+                    {% if request.user.is_superuser %}
+                      <span class="badge badge-danger">Superuser</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              <hr>
+              <ul class="list-unstyled small mb-0">
+                <li class="mb-1"><i class="far fa-calendar-alt mr-2 text-muted"></i>Joined: {{ request.user.date_joined|date:"M d, Y" }}</li>
+                <li class="mb-1"><i class="far fa-clock mr-2 text-muted"></i>Last login: {{ request.user.last_login|date:"M d, Y H:i" }}</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Active Sessions (client-side only for UX) -->
+          <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+              <h3 class="card-title mb-0"><i class="fas fa-laptop mr-2"></i>Active Sessions</h3>
+              <button class="btn btn-xs btn-outline-danger" id="btnSignOutAll"><i class="fas fa-sign-out-alt mr-1"></i>Sign out all</button>
+            </div>
+            <div class="card-body p-0">
+              <ul class="list-group list-group-flush" id="sessionsList">
+                <!-- sessions injected -->
+              </ul>
+            </div>
+            <div class="card-footer small text-muted">
+              This is a visual aid. For real session management, wire this to a Django view (e.g., rotate session key, flush others).
+            </div>
+          </div>
+
+          <!-- Security Tips -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title mb-0"><i class="far fa-lightbulb mr-2"></i>Security Tips</h3>
+            </div>
+            <div class="card-body">
+              <ul class="mb-0 small">
+                <li class="mb-2">Use a password manager to generate and store strong passwords.</li>
+                <li class="mb-2">Enable 2FA on your accounts where possible.</li>
+                <li class="mb-2">Sign out from devices you no longer use.</li>
+                <li class="mb-0">Beware of phishing—always verify the site URL before logging in.</li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
     </div>
   </section>
 </div>
-
 {% endblock content %}
+
+{% block extra_scripts %}
+<script>
+(function(){
+  'use strict';
+
+  // ====== Password strength meter ======
+  const $pwd1 = document.getElementById('id_new_password1');
+  const $pwd2 = document.getElementById('id_new_password2');
+  const $bar  = document.getElementById('pwdStrengthBar');
+  const $text = document.getElementById('pwdStrengthText');
+  const $matchHelp = document.getElementById('matchHelp');
+  const $form = document.getElementById('passwordChangeForm');
+  const $feedback = document.getElementById('formFeedback');
+
+  function score(pwd){
+    if (!pwd) return 0;
+    let s = 0;
+    if (pwd.length >= 8) s += 20;
+    if (pwd.length >= 12) s += 20;
+    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) s += 20;
+    if (/\d/.test(pwd)) s += 20;
+    if (/[^A-Za-z0-9]/.test(pwd)) s += 20;
+    return Math.min(100, s);
+  }
+  function applyBar(n){
+    $bar.style.width = n + '%';
+    $bar.classList.remove('bg-danger','bg-warning','bg-success');
+    if (n < 40) { $bar.classList.add('bg-danger'); $text.textContent = 'Strength: Weak'; }
+    else if (n < 70) { $bar.classList.add('bg-warning'); $text.textContent = 'Strength: Medium'; }
+    else { $bar.classList.add('bg-success'); $text.textContent = 'Strength: Strong'; }
+  }
+  function checkMatch(){
+    const same = ($pwd1.value || '') === ($pwd2.value || '');
+    $matchHelp.textContent = same ? 'Passwords match.' : 'Both passwords must match.';
+    $matchHelp.classList.toggle('text-success', same);
+    $matchHelp.classList.toggle('text-danger', !same && $pwd2.value.length>0);
+    return same;
+  }
+
+  $pwd1.addEventListener('input', ()=> applyBar(score($pwd1.value)));
+  $pwd2.addEventListener('input', checkMatch);
+
+  // ====== Show/Hide buttons ======
+  document.querySelectorAll('.btn-toggle').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const target = document.querySelector(btn.getAttribute('data-target'));
+      if (!target) return;
+      const isPwd = target.getAttribute('type') === 'password';
+      target.setAttribute('type', isPwd ? 'text' : 'password');
+      btn.querySelector('i').className = isPwd ? 'far fa-eye-slash' : 'far fa-eye';
+    });
+  });
+
+  // ====== Client-side guard before submit ======
+  $form.addEventListener('submit', (e)=>{
+    $feedback.textContent = '';
+    $feedback.className = 'ml-3 small';
+
+    const strength = score($pwd1.value);
+    const matched = checkMatch();
+
+    if (strength < 40 || !matched) {
+      e.preventDefault();
+      $feedback.textContent = 'Please choose a stronger password and ensure both fields match.';
+      $feedback.classList.add('text-danger');
+      return;
+    }
+
+    // Optional: you can keep this user feedback even on real submit
+    $feedback.textContent = 'Submitting…';
+    $feedback.classList.add('text-muted');
+  });
+
+  // ====== Fake "Active Sessions" (UI only) ======
+  const sessions = [
+    { id: 'cur', device:'This device', browser:'Chrome 140', ip:'127.0.0.1', last:'just now', current:true },
+    { id: 'mbp', device:'MacBook Pro', browser:'Safari 17', ip:'10.0.0.5', last:'2d ago' },
+    { id: 'phone', device:'Pixel 8', browser:'Chrome Mobile', ip:'10.0.0.9', last:'5d ago' }
+  ];
+  const $sessionsList = document.getElementById('sessionsList');
+  function renderSessions(){
+    $sessionsList.innerHTML = sessions.map(s=>`
+      <li class="list-group-item d-flex align-items-center justify-content-between">
+        <div>
+          <strong>${s.device}</strong>
+          <div class="text-muted small">${s.browser} • ${s.ip} • ${s.last} ${s.current?'<span class="badge badge-info ml-1">Current</span>':''}</div>
+        </div>
+        ${s.current ? '' : `<button class="btn btn-xs btn-outline-danger js-kill" data-id="${s.id}"><i class="fas fa-sign-out-alt mr-1"></i>Sign out</button>`}
+      </li>
+    `).join('');
+  }
+  renderSessions();
+
+  document.getElementById('btnSignOutAll').addEventListener('click', ()=>{
+    // UI only; for real logic call a Django view to flush sessions.
+    const keep = sessions.filter(s=>s.current);
+    sessions.length = 0; sessions.push(...keep);
+    renderSessions();
+  });
+  $sessionsList.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.js-kill');
+    if (!btn) return;
+    const id = btn.getAttribute('data-id');
+    const idx = sessions.findIndex(s=>s.id===id);
+    if (idx>-1) { sessions.splice(idx,1); renderSessions(); }
+  });
+
+})();
+</script>
+{% endblock extra_scripts %}

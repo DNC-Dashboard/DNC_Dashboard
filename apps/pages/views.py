@@ -25,7 +25,9 @@ def analytics(request):
     return render(request, "pages/analytics.html")
 
 def task_management(request):
-    return render(request, "pages/task_management.html")
+    return render(request, "pages/kanban.html")
+def projects(request):
+    return render(request, "pages/projects.html")
 
     
 def campaigns(request):
@@ -33,7 +35,7 @@ def campaigns(request):
 
  
 def nomand(request):
-    return render(request, "pages/nomand.html")
+    return render(request, "pages/profile.html")
 
  
 def configuration(request):

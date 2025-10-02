@@ -28,10 +28,12 @@ urlpatterns = [
     path("", include('admin_adminlte.urls')),
     path('', include('apps.pages.urls')),  # handles / and /members/
     path('admin/', admin.site.urls),
+    path("accounts/", include(("django.contrib.auth.urls", "auth"), namespace="auth")),
+
 
 
     # login / logout
-        path('login/', auth_views.LoginView.as_view(template_name='accounts/login.html'), name='login'),
+        # path('login/', auth_views.LoginView.as_view(template_name='accounts/login.html'), name='login'),
 
    
 ]

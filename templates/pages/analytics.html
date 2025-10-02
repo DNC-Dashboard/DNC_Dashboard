@@ -1,4 +1,11 @@
-{% extends 'layouts/base.html' %} {% load static %} {% block title %} Widgets {% endblock title %} {% block bodyclass %} hold-transition sidebar-mini {% endblock bodyclass %} {% block content %}
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}Analytics{% endblock title %}
+{% block bodyclass %}hold-transition sidebar-mini{% endblock bodyclass %}
+
+{% block content %}
+
 
 <div class="content-wrapper">
   <div class="content-header">
@@ -21,6 +28,98 @@
   <section class="content">
     <div class="container-fluid">
       <!-- Add your contennt here -->
+
+      <!-- GA4 Traffic: cards + chart -->
+      <div class="row" id="ga-traffic">
+        <div class="col-md-4">
+          <div class="small-box bg-info">
+            <div class="inner">
+              <h3 id="ga-sessions">–</h3>
+              <p>Sessions (last 7 days)</p>
+            </div>
+            <div class="icon"><i class="fas fa-chart-line"></i></div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="small-box bg-success">
+            <div class="inner">
+              <h3 id="ga-users">–</h3>
+              <p>Active Users (last 7 days)</p>
+            </div>
+            <div class="icon"><i class="fas fa-user-friends"></i></div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="small-box bg-warning">
+            <div class="inner">
+              <h3 id="ga-pageviews">–</h3>
+              <p>Pageviews (last 7 days)</p>
+            </div>
+            <div class="icon"><i class="fas fa-eye"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div
+          class="card-header d-flex align-items-center justify-content-between"
+        >
+          <h3 class="card-title m-0">
+            Sessions (Last <span id="ga-days-label">7</span> Days)
+          </h3>
+          <div>
+            <button class="btn btn-sm btn-outline-primary" data-days="7">
+              7d
+            </button>
+            <button class="btn btn-sm btn-outline-primary" data-days="14">
+              14d
+            </button>
+            <button class="btn btn-sm btn-outline-primary" data-days="30">
+              30d
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <canvas id="gaSessionsChart" height="120"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart.js -->
+      <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+     <script>
+  const apiBase = "/api/analytics/traffic"; // match your urls.py (no trailing slash)
+  let chart;
+
+  async function loadTraffic(days = 7) {
+    const res = await fetch(`${apiBase}?days=${days}`, { cache: "no-store" });
+    if (!res.ok) { console.error("Traffic API failed:", res.status, await res.text()); return; }
+    const { summary, timeseries } = await res.json();
+
+    // Update cards
+    document.getElementById("ga-sessions").textContent  = (summary.sessions || 0).toLocaleString();
+    document.getElementById("ga-users").textContent     = (summary.activeUsers || 0).toLocaleString();
+    document.getElementById("ga-pageviews").textContent = (summary.pageviews || 0).toLocaleString();
+
+    // Draw chart
+    const ctx = document.getElementById("gaSessionsChart");
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+      type: "line",
+      data: { labels: timeseries.labels, datasets: [{ label: "Sessions", data: timeseries.data, fill: false, tension: 0.3 }] },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+  }
+
+  // range buttons: <button data-days="7"> etc.
+  document.addEventListener("click", (e) => {
+    if (e.target.matches("[data-days]")) loadTraffic(parseInt(e.target.dataset.days, 10));
+  });
+
+  // initial load
+  loadTraffic(7).catch(console.error);
+</script>
+
     </div>
   </section>
 </div>

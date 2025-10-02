@@ -23,7 +23,8 @@
           </li>
         {% else %}
           <li class="nav-item d-none d-sm-inline-block">
-            <a href="{% url 'password_change' %}" class="nav-link">Change Password</a>
+      <a href="{% url 'auth:password_change' %}">Change Password</a>
+
           </li>
           <li class="nav-item d-none d-sm-inline-block">
             <a href="{% url 'logout' %}" class="nav-link">Logout</a>
