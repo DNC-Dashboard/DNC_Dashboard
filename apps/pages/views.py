@@ -18,6 +18,11 @@ def members(request):
 
 # Create your views below 👇👇👇
 
+# Analytics features
+    
+def analytics(request):
+    return render(request, "pages/analytics.html")
+
 
 
     
