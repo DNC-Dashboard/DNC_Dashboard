@@ -7,22 +7,19 @@
   data-accordion="false"
 >
 
-  {% admin_get_menu as app_list %}
-  {% if app_list %}
-    {% for app in app_list %}
-      {% if app.has_perms and not app.pinned %}
-      {% endif %}
-    {% endfor %}
-  {% endif %}
-
-  <!-- Dashboard (exists in most setups) -->
+  {% admin_get_menu as app_list %} {% if app_list %} {% for app in app_list %}
+  {% if app.has_perms and not app.pinned %}
+  
+  {% endif %} {% endfor %} {% endif %}
   <li class="nav-item">
-    <a href="{% url 'index' %}" class="nav-link {% if 'gallery' in segment %} active {% endif %}">
+    <a
+      href="{% url 'index' %}"
+      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
+    >
       <i class="nav-icon fas fa-tachometer-alt"></i>
       <p>Dashboard</p>
     </a>
   </li>
-
 
  
   <li class="nav-item">
@@ -30,77 +27,163 @@
       href="{% url 'analytics' %}"
       class="nav-link {% if 'gallery' in segment %} active {% endif %}"
     >
-      <i class="nav-icon fas fa-chart-bar"></i>
+      <i class="nav-icon fas fa-chart-line"></i>
       <p>Analytics</p>
     </a>
   </li>
-
   <li class="nav-item">
-    <a href="{% url 'task_management' %}" class="nav-link {% if 'gallery' in segment %} active {% endif %}">
+    <a
+      href="{% url 'task_management' %}"
+      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
+    >
       <i class="nav-icon fas fa-tasks"></i>
       <p>Task Management</p>
     </a>
   </li>
-
   <li class="nav-item">
-    <a href="{% url 'campaigns' %}" class="nav-link {% if 'gallery' in segment %} active {% endif %}">
+    <a
+      href="{% url 'projects' %}"
+      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
+    >
       <i class="nav-icon fas fa-ad"></i>
-      <p>Campaigns</p>
+      <p>Projects</p>
     </a>
   </li>
-
   <li class="nav-item">
-    <a  href="{% url 'nomand' %}" class="nav-link {% if 'gallery' in segment %} active {% endif %}">
+    <a
+      href="{% url 'campaigns' %}"
+      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
+    >
+      <i class="nav-icon fas fa-ad"></i>
+      <p>Campaings</p>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a
+      href="{% url 'profile' %}"
+      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
+    >
       <i class="nav-icon fas fa-user"></i>
       <p>Nomand</p>
     </a>
   </li>
-
   <li class="nav-item">
-    <a  href="{% url 'configuration' %}" class="nav-link {% if 'gallery' in segment %} active {% endif %}">
-      <i class="nav-icon fas fa-user-cog"></i>
+    <a
+      href="{% url 'configuration' %}"
+      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
+    >
+      <i class="nav-icon fas fa-user-cog "></i>
       <p>Configuration</p>
     </a>
   </li>
 
+
   <li class="nav-item">
-    <a   href="{% url 'assets' %}" class="nav-link {% if 'gallery' in segment %} active {% endif %}">
-      <i class="nav-icon fas fa-box"></i>
+    <a
+      href="{% url 'assets' %}"
+      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
+    >
+      <i class="nav-icon fas fa-user-cog "></i>
       <p>Assets</p>
     </a>
   </li>
 
-  {# Truly comment-out the Examples section so Django doesn't parse {% url %} inside #}
-  {% comment %}
-  <li class="nav-header">EXAMPLES</li>
-  <li class="nav-item">
-    <a href="{% url 'examples_gallery' %}" class="nav-link {% if 'gallery' in segment %} active {% endif %}">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <!-- <li class="nav-item {% if 'apps' in parent %} menu-open {% endif %}">
+      <a href="#" class="nav-link {% if 'apps' in parent %} active {% endif %}">
+        <i class="nav-icon fas fa-th-large"></i>
+        <p>
+          Apps
+          <i class="right fas fa-angle-left"></i>
+        </p>
+      </a>
+      <ul class="nav nav-treeview">
+        <li class="nav-item">
+          <a href="{% url 'dynamic_dt' %}" class="nav-link {% if 'dynamic_dt' in segment %} active {% endif %}">
+            <i class="far fa-circle nav-icon"></i>
+            <p>Dynamic Tables</p>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="{% url 'dynamic_api' %}" class="nav-link {% if 'dynamic_api' in segment %} active {% endif %}">
+            <i class="far fa-circle nav-icon"></i>
+            <p>Dynamic API</p>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="{% url 'charts' %}" class="nav-link {% if 'charts' in segment %} active {% endif %}">
+            <i class="far fa-circle nav-icon"></i>
+            <p>Charts</p>
+          </a>
+        </li>
+      </ul>
+    </li> -->
+
+  {% if request.user.is_superuser %}
+ 
+  
+
+  {% endif %} {% if not request.user.is_superuser %}
+  
+  {% endif %}
+
+  
+ 
+ 
+ 
+  
+  <!-- <li class="nav-header">EXAMPLES</li> -->
+ 
+  <!-- <li class="nav-item">
+    <a
+      href="{% url 'examples_gallery' %}"
+      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
+    >
       <i class="nav-icon far fa-image"></i>
       <p>Gallery</p>
     </a>
   </li>
-  {% endcomment %}
+  -->
+ 
+ 
+ 
 
   {% if request.user.is_authenticated %}
-    <li class="nav-item">
-      <a href="{% url 'logout' %}" class="nav-link">
-        <i class="fa fa-sign-out-alt nav-icon"></i>
-        <p>Logout</p>
-      </a>
-    </li>
+  <li class="nav-item">
+    <a href="{% url 'logout' %}" class="nav-link">
+      <i class="fa fa-sign-out-alt nav-icon"></i>
+      <p>Logout</p>
+    </a>
+  </li>
   {% else %}
-    <li class="nav-item">
-      <a href="{% url 'login' %}" class="nav-link">
-        <i class="fa fa-sign-in-alt nav-icon"></i>
-        <p>Login</p>
-      </a>
-    </li>
-    <li class="nav-item">
-      <a href="{% url 'register' %}" class="nav-link">
-        <i class="fa fa-user-plus nav-icon"></i>
-        <p>Register</p>
-      </a>
-    </li>
+  <li class="nav-item">
+    <a href="{% url 'login' %}" class="nav-link">
+      <i class="fa fa-sign-in-alt nav-icon"></i>
+      <p>Login</p>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a href="{% url 'register' %}" class="nav-link">
+      <i class="fa fa-user-plus nav-icon"></i>
+      <p>Register</p>
+    </a>
+  </li>
   {% endif %}
 
+ 
 </ul>

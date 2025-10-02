@@ -11,6 +11,8 @@ urlpatterns = [
     path('nomand/', views.nomand, name='nomand'),
 
     path('configuration/', views.configuration, name='configuration'),
+   
+    path('projects/', views.projects, name='projects'),
     path('assets/', views.assets, name='assets'),
 
    

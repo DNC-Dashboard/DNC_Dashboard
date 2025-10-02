@@ -1,28 +1,727 @@
-{% extends 'layouts/base.html' %} {% load static %} {% block title %} Widgets {% endblock title %} {% block bodyclass %} hold-transition sidebar-mini {% endblock bodyclass %} {% block content %}
+{% extends 'layouts/base.html' %}
+{% load static %}
 
+{% block title %} Digital Assets (Nomad) {% endblock title %}
+{% block bodyclass %} hold-transition sidebar-mini {% endblock bodyclass %}
+
+{% block content %}
 <div class="content-wrapper">
-  <div class="content-header">
+  <!-- Page header -->
+  <section class="content-header">
     <div class="container-fluid">
-      <div class="row mb-2">
+      <div class="row mb-2 align-items-center">
         <div class="col-sm-6">
-          <h1 class="m-0">Assets</h1>
+          <h1 class="mb-1">Nomad — Digital Assets</h1>
+          <p class="text-muted mb-0">Curate courses, templates, components, media, and licenses in one place.</p>
         </div>
-        <!-- /.col -->
         <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
+          <ol class="breadcrumb float-sm-right mb-0">
             <li class="breadcrumb-item"><a href="#">Home</a></li>
-            <li class="breadcrumb-item active">Assets</li>
+            <li class="breadcrumb-item">Assets</li>
+            <li class="breadcrumb-item active">Nomad</li>
           </ol>
         </div>
       </div>
-    </div>
-  </div>
 
+      <!-- Toolbar -->
+      <div class="row align-items-center">
+        <div class="col-lg-4 col-md-6 mb-2">
+          <div class="input-group">
+            <input id="search" type="search" class="form-control" placeholder="Search title, tags, instructor…">
+            <div class="input-group-append">
+              <button class="btn btn-outline-secondary" id="clear-search"><i class="fas fa-times"></i></button>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-8 col-md-6 mb-2 text-lg-right">
+          <div class="btn-group mr-2" role="group" aria-label="View">
+            <button class="btn btn-outline-secondary active" id="btn-grid"><i class="fas fa-th"></i></button>
+            <button class="btn btn-outline-secondary" id="btn-list"><i class="fas fa-list"></i></button>
+          </div>
+          <select id="filter-category" class="custom-select w-auto mr-2">
+            <option value="">All Categories</option>
+            <option>Design</option>
+            <option>Development</option>
+            <option>Marketing</option>
+            <option>Data</option>
+          </select>
+          <select id="sort-by" class="custom-select w-auto mr-2">
+            <option value="recent">Sort: Most Recent</option>
+            <option value="title-asc">Sort: Title A–Z</option>
+            <option value="title-desc">Sort: Title Z–A</option>
+            <option value="popularity">Sort: Popularity</option>
+          </select>
+          <button class="btn btn-primary" id="btn-new-course"><i class="fas fa-plus mr-1"></i> New Course</button>
+          <button class="btn btn-outline-primary ml-2" id="btn-new-asset"><i class="fas fa-plus mr-1"></i> New Asset</button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="row">
+        <div class="col-12">
+          <ul class="nav nav-pills mt-2" id="asset-tabs">
+            <li class="nav-item"><a class="nav-link active" data-tab="courses" href="#">Courses</a></li>
+            <li class="nav-item"><a class="nav-link" data-tab="templates" href="#">Templates</a></li>
+            <li class="nav-item"><a class="nav-link" data-tab="components" href="#">Components</a></li>
+            <li class="nav-item"><a class="nav-link" data-tab="media" href="#">Media</a></li>
+            <li class="nav-item"><a class="nav-link" data-tab="licenses" href="#">Licenses</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Content -->
   <section class="content">
     <div class="container-fluid">
-      <!-- Add your contennt here -->
+      <!-- Active tab counter + tags -->
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div><span class="badge badge-info" id="count-badge">0 items</span></div>
+        <div id="active-tags" class="text-right">
+          <!-- active tag chips injected -->
+        </div>
+      </div>
+
+      <!-- Grid/List container -->
+      <div id="assets-grid" class="row">
+        <!-- cards injected by JS -->
+      </div>
+
+      <div id="assets-list" class="card d-none">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="thead-light">
+              <tr>
+                <th style="width:48px"></th>
+                <th>Title</th>
+                <th style="width:12%">Category</th>
+                <th style="width:12%">Type</th>
+                <th style="width:18%">Tags</th>
+                <th style="width:10%">Updated</th>
+                <th style="width:180px"></th>
+              </tr>
+            </thead>
+            <tbody id="assets-list-body"><!-- rows injected --></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div id="empty-state" class="text-center py-5 d-none">
+        <img src="{% static 'dist/img/empty.png' %}" alt="Empty" style="width:140px; opacity:.7">
+        <h5 class="mt-3">Nothing here yet</h5>
+        <p class="text-muted">Add digital assets from Nomad — courses, templates, components, media, or licenses.</p>
+        <button class="btn btn-primary" id="empty-add"><i class="fas fa-plus mr-1"></i> Add your first item</button>
+      </div>
     </div>
   </section>
 </div>
 
+<!-- Course Modal -->
+<div class="modal fade" id="courseModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <form id="course-form">
+        <div class="modal-header">
+          <h5 class="modal-title">New Course (Nomad)</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="course-id">
+          <div class="form-row">
+            <div class="form-group col-md-8">
+              <label>Title</label>
+              <input type="text" id="course-title" class="form-control" placeholder="e.g. Design Systems in Practice" required>
+            </div>
+            <div class="form-group col-md-4">
+              <label>Category</label>
+              <select id="course-category" class="form-control">
+                <option>Design</option>
+                <option>Development</option>
+                <option>Marketing</option>
+                <option>Data</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label>Instructor</label>
+              <input type="text" id="course-instructor" class="form-control" placeholder="Nomad" value="Nomad">
+            </div>
+            <div class="form-group col-md-3">
+              <label>Level</label>
+              <select id="course-level" class="form-control">
+                <option>Beginner</option>
+                <option>Intermediate</option>
+                <option>Advanced</option>
+              </select>
+            </div>
+            <div class="form-group col-md-3">
+              <label>Duration (min)</label>
+              <input type="number" id="course-duration" class="form-control" min="1" value="60">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-8">
+              <label>Tags (comma-separated)</label>
+              <input type="text" id="course-tags" class="form-control" placeholder="ux, figma, systems">
+            </div>
+            <div class="form-group col-md-4">
+              <label>Thumbnail</label>
+              <select id="course-thumb" class="form-control">
+                <option value="course-1.jpg">Cover 1</option>
+                <option value="course-2.jpg">Cover 2</option>
+                <option value="course-3.jpg">Cover 3</option>
+                <option value="course-4.jpg">Cover 4</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="course-desc" class="form-control" rows="3" placeholder="Brief course description…"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-1"></i> Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Generic Asset Modal (Templates/Components/Media/Licenses) -->
+<div class="modal fade" id="assetModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <form id="asset-form">
+        <div class="modal-header">
+          <h5 class="modal-title">New Asset</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="asset-id">
+          <input type="hidden" id="asset-kind"> <!-- templates/components/media/licenses -->
+          <div class="form-row">
+            <div class="form-group col-md-8">
+              <label>Title</label>
+              <input type="text" id="asset-title" class="form-control" placeholder="e.g. SaaS Landing Template" required>
+            </div>
+            <div class="form-group col-md-4">
+              <label>Category</label>
+              <select id="asset-category" class="form-control">
+                <option>Design</option>
+                <option>Development</option>
+                <option>Marketing</option>
+                <option>Data</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-4">
+              <label>Type</label>
+              <select id="asset-type" class="form-control">
+                <option>Template</option>
+                <option>Component</option>
+                <option>Media</option>
+                <option>License</option>
+              </select>
+            </div>
+            <div class="form-group col-md-4">
+              <label>Version</label>
+              <input type="text" id="asset-version" class="form-control" placeholder="1.0.0">
+            </div>
+            <div class="form-group col-md-4">
+              <label>Thumbnail</label>
+              <select id="asset-thumb" class="form-control">
+                <option value="asset-1.jpg">Thumb 1</option>
+                <option value="asset-2.jpg">Thumb 2</option>
+                <option value="asset-3.jpg">Thumb 3</option>
+                <option value="asset-4.jpg">Thumb 4</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Tags (comma-separated)</label>
+            <input type="text" id="asset-tags" class="form-control" placeholder="landing, hero, grid">
+          </div>
+
+          <div class="form-group">
+            <label>Notes</label>
+            <textarea id="asset-notes" class="form-control" rows="3" placeholder="Usage notes, license info, etc."></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-8">
+              <label>Download URL (optional)</label>
+              <input type="url" id="asset-url" class="form-control" placeholder="https://…">
+            </div>
+            <div class="form-group col-md-4">
+              <label>Last Updated</label>
+              <input type="date" id="asset-updated" class="form-control">
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-1"></i> Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock content %}
+
+{% block extra_scripts %}
+<script>
+(function(){
+  'use strict';
+
+  // --- Constants / Elements ---
+  const STATIC_BASE = "{% static 'dist/img/' %}";
+  const STORAGE_KEY = 'nomad.assets.v1';
+  const $grid = document.getElementById('assets-grid');
+  const $list = document.getElementById('assets-list');
+  const $listBody = document.getElementById('assets-list-body');
+  const $empty = document.getElementById('empty-state');
+  const $count = document.getElementById('count-badge');
+  const $tagsWrap = document.getElementById('active-tags');
+
+  const $search = document.getElementById('search');
+  const $clearSearch = document.getElementById('clear-search');
+  const $filterCat = document.getElementById('filter-category');
+  const $sortBy = document.getElementById('sort-by');
+  const $btnGrid = document.getElementById('btn-grid');
+  const $btnList = document.getElementById('btn-list');
+  const $tabs = document.getElementById('asset-tabs');
+
+  const $btnNewCourse = document.getElementById('btn-new-course');
+  const $btnNewAsset = document.getElementById('btn-new-asset');
+  const $emptyAdd = document.getElementById('empty-add');
+
+  // Course modal
+  const $courseModal = document.getElementById('courseModal');
+  const $courseForm = document.getElementById('course-form');
+  const $cId = document.getElementById('course-id');
+  const $cTitle = document.getElementById('course-title');
+  const $cCat = document.getElementById('course-category');
+  const $cInstr = document.getElementById('course-instructor');
+  const $cLevel = document.getElementById('course-level');
+  const $cDur = document.getElementById('course-duration');
+  const $cTags = document.getElementById('course-tags');
+  const $cThumb = document.getElementById('course-thumb');
+  const $cDesc = document.getElementById('course-desc');
+
+  // Asset modal
+  const $assetModal = document.getElementById('assetModal');
+  const $assetForm = document.getElementById('asset-form');
+  const $aId = document.getElementById('asset-id');
+  const $aKind = document.getElementById('asset-kind');
+  const $aTitle = document.getElementById('asset-title');
+  const $aCat = document.getElementById('asset-category');
+  const $aType = document.getElementById('asset-type');
+  const $aVer = document.getElementById('asset-version');
+  const $aThumb = document.getElementById('asset-thumb');
+  const $aTags = document.getElementById('asset-tags');
+  const $aNotes = document.getElementById('asset-notes');
+  const $aUrl = document.getElementById('asset-url');
+  const $aUpdated = document.getElementById('asset-updated');
+
+  // --- State ---
+  let state = {
+    activeTab: 'courses',
+    view: 'grid', // grid|list
+    search: '',
+    category: '',
+    sort: 'recent',
+    data: {
+      courses: [],
+      templates: [],
+      components: [],
+      media: [],
+      licenses: []
+    }
+  };
+
+  // --- Utilities ---
+  const uuid = () => 'id_' + Math.random().toString(36).slice(2, 10);
+  const esc = s => (s||'').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const toTags = v => (Array.isArray(v) ? v : (v||'').split(',')).map(s=>s.trim()).filter(Boolean);
+  const fmtDate = iso => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return iso;
+    return [String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0'), d.getFullYear()].join('/');
+  };
+
+  // --- Storage ---
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+  }
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch { return null; }
+  }
+
+  function seedIfEmpty() {
+    const hasAny = Object.values(state.data).some(arr => (arr||[]).length);
+    if (hasAny) return;
+
+    state.data.courses = [
+      {
+        id: uuid(),
+        title: 'Design Systems in Practice',
+        category: 'Design',
+        instructor: 'Nomad',
+        level: 'Intermediate',
+        duration: 120,
+        tags: ['ux','systems','figma'],
+        thumb: 'course-1.jpg',
+        description: 'Build robust design systems with practical workflows.',
+        updated: new Date().toISOString()
+      },
+      {
+        id: uuid(),
+        title: 'Intro to Modern Frontend',
+        category: 'Development',
+        instructor: 'Nomad',
+        level: 'Beginner',
+        duration: 90,
+        tags: ['js','html','css'],
+        thumb: 'course-2.jpg',
+        description: 'A friendly primer on today’s frontend landscape.',
+        updated: new Date().toISOString()
+      }
+    ];
+
+    state.data.templates = [
+      { id: uuid(), title: 'SaaS Landing Template', category:'Design', type:'Template', version:'1.1.0', tags:['landing','hero','grid'], thumb:'asset-1.jpg', notes:'Figma + HTML starter', url:'', updated: new Date().toISOString()},
+      { id: uuid(), title: 'Email Newsletter', category:'Marketing', type:'Template', version:'2.0.0', tags:['email','responsive'], thumb:'asset-2.jpg', notes:'MJML compatible', url:'', updated: new Date().toISOString()}
+    ];
+    state.data.components = [
+      { id: uuid(), title: 'Navbar Kit', category:'Development', type:'Component', version:'1.0.0', tags:['navbar','layout'], thumb:'asset-3.jpg', notes:'Bootstrap snippet bundle', url:'', updated: new Date().toISOString()}
+    ];
+    state.data.media = [
+      { id: uuid(), title: 'Hero Illustration', category:'Design', type:'Media', version:'', tags:['svg','illustration'], thumb:'asset-4.jpg', notes:'Vector pack', url:'', updated: new Date().toISOString()}
+    ];
+    state.data.licenses = [
+      { id: uuid(), title: 'Pro Icons License', category:'Design', type:'License', version:'2025', tags:['icons','license'], thumb:'asset-1.jpg', notes:'Unlimited projects', url:'', updated: new Date().toISOString()}
+    ];
+
+    save();
+  }
+
+  // --- Filtering / Sorting ---
+  function getActiveList() {
+    const list = state.data[state.activeTab] || [];
+    const q = state.search.toLowerCase();
+    let filtered = list.filter(item => {
+      const hay = [
+        item.title, item.category, (item.instructor||''), (item.type||''), (item.notes||''), toTags(item.tags).join(' ')
+      ].join(' ').toLowerCase();
+      const matchesSearch = !q || hay.includes(q);
+      const matchesCat = !state.category || item.category === state.category;
+      return matchesSearch && matchesCat;
+    });
+
+    switch (state.sort) {
+      case 'title-asc': filtered.sort((a,b)=>a.title.localeCompare(b.title)); break;
+      case 'title-desc': filtered.sort((a,b)=>b.title.localeCompare(a.title)); break;
+      case 'popularity': filtered.sort((a,b)=> (toTags(b.tags).length||0)-(toTags(a.tags).length||0)); break;
+      default:
+      case 'recent':
+        filtered.sort((a,b)=> new Date(b.updated||0) - new Date(a.updated||0));
+    }
+    return filtered;
+  }
+
+  // --- Rendering ---
+  function thumbUrl(name) { return STATIC_BASE + (name || 'placeholder.png'); }
+  function chip(tag) {
+    const id = 'tag-' + tag.replace(/\s+/g,'-').toLowerCase();
+    return `<span class="badge badge-light border mr-1 mb-1 tag-chip" data-tag="${esc(tag)}" id="${id}">
+      <i class="fas fa-hashtag text-muted"></i> ${esc(tag)}
+    </span>`;
+  }
+
+  function renderTagsFromQuery() {
+    $tagsWrap.innerHTML = '';
+    const q = (state.search||'').trim();
+    if (!q) return;
+    // render the search as a dismissible chip
+    const node = document.createElement('span');
+    node.className = 'badge badge-info mb-0';
+    node.innerHTML = `<i class="fas fa-search mr-1"></i>${esc(q)} <a href="#" class="text-white ml-1 js-remove-search"><i class="fas fa-times"></i></a>`;
+    $tagsWrap.appendChild(node);
+  }
+
+  function renderGrid(items) {
+    $grid.innerHTML = items.map(item => {
+      const isCourse = state.activeTab === 'courses';
+      const tags = toTags(item.tags).map(chip).join('');
+      const sub = isCourse
+        ? `<div class="d-flex align-items-center">
+             <img class="img-size-32 img-circle mr-2" src="${STATIC_BASE}avatar.png" alt="">
+             <div>
+               <div class="small text-muted">${esc(item.instructor||'Nomad')} • ${esc(item.level||'-')}</div>
+               <div class="small text-muted">${(item.duration||0)} min</div>
+             </div>
+           </div>`
+        : `<div class="small text-muted">Type: ${esc(item.type||'-')} ${item.version?('• v'+esc(item.version)) : ''}</div>`;
+
+      return `
+      <div class="col-xl-3 col-lg-4 col-md-6 col-12 mb-3" data-id="${item.id}">
+        <div class="card h-100 shadow-sm">
+          <div class="position-relative">
+            <img src="${thumbUrl(item.thumb)}" class="card-img-top" alt="">
+            <span class="badge badge-primary position-absolute" style="top:10px; right:10px;">${esc(item.category||'-')}</span>
+          </div>
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title mb-1">${esc(item.title)}</h5>
+            <p class="card-text text-muted small mb-2">${esc(item.description||item.notes||'')}</p>
+            ${sub}
+            <div class="mt-2">${tags || '<span class="text-muted small">No tags</span>'}</div>
+            <div class="mt-auto d-flex justify-content-between align-items-center pt-2">
+              <small class="text-muted">Updated ${fmtDate(item.updated)}</small>
+              <div class="btn-group">
+                <button class="btn btn-sm btn-primary js-view"><i class="fas fa-eye"></i></button>
+                <button class="btn btn-sm btn-info js-edit"><i class="fas fa-pencil-alt"></i></button>
+                <button class="btn btn-sm btn-danger js-del"><i class="fas fa-trash"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderList(items) {
+    $listBody.innerHTML = items.map(item => {
+      const tags = toTags(item.tags).map(t=>`<span class="badge badge-light border mr-1">${esc(t)}</span>`).join('');
+      return `
+      <tr data-id="${item.id}">
+        <td><img src="${thumbUrl(item.thumb)}" alt="" style="width:42px; height:42px; object-fit:cover; border-radius:6px;"></td>
+        <td>
+          <div class="font-weight-500">${esc(item.title)}</div>
+          <div class="text-muted small">${esc(item.description||item.notes||'')}</div>
+        </td>
+        <td>${esc(item.category||'-')}</td>
+        <td>${esc(state.activeTab === 'courses' ? 'Course' : (item.type||'-'))}</td>
+        <td>${tags||'<span class="text-muted">—</span>'}</td>
+        <td>${fmtDate(item.updated)}</td>
+        <td class="text-right">
+          <button class="btn btn-sm btn-primary js-view"><i class="fas fa-eye mr-1"></i> View</button>
+          <button class="btn btn-sm btn-info js-edit"><i class="fas fa-pencil-alt mr-1"></i> Edit</button>
+          <button class="btn btn-sm btn-danger js-del"><i class="fas fa-trash mr-1"></i> Delete</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function render() {
+    const items = getActiveList();
+    // toggle empty state
+    const isEmpty = items.length === 0;
+    $empty.classList.toggle('d-none', !isEmpty);
+    $grid.classList.toggle('d-none', isEmpty || state.view !== 'grid');
+    $list.classList.toggle('d-none', isEmpty || state.view !== 'list');
+    $count.textContent = `${items.length} item${items.length===1?'':'s'}`;
+    renderTagsFromQuery();
+
+    if (isEmpty) return;
+
+    if (state.view === 'grid') renderGrid(items);
+    else renderList(items);
+  }
+
+  // --- CRUD helpers ---
+  function findItem(tab, id) {
+    const idx = (state.data[tab]||[]).findIndex(x => x.id === id);
+    return { idx, item: idx >= 0 ? state.data[tab][idx] : null };
+  }
+
+  // --- Modals: Courses ---
+  function openCourseModal(data=null) {
+    $courseForm.reset();
+    $cId.value = data ? data.id : '';
+    document.querySelector('#courseModal .modal-title').textContent = data ? 'Edit Course (Nomad)' : 'New Course (Nomad)';
+    if (data) {
+      $cTitle.value = data.title||'';
+      $cCat.value = data.category||'Design';
+      $cInstr.value = data.instructor||'Nomad';
+      $cLevel.value = data.level||'Beginner';
+      $cDur.value = data.duration||60;
+      $cTags.value = toTags(data.tags).join(',');
+      $cThumb.value = data.thumb||'course-1.jpg';
+      $cDesc.value = data.description||'';
+    } else {
+      $cInstr.value = 'Nomad';
+    }
+    $('#courseModal').modal('show');
+  }
+
+  $courseForm.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const obj = {
+      id: $cId.value || uuid(),
+      title: $cTitle.value.trim(),
+      category: $cCat.value,
+      instructor: $cInstr.value.trim() || 'Nomad',
+      level: $cLevel.value,
+      duration: +$cDur.value||60,
+      tags: toTags($cTags.value),
+      thumb: $cThumb.value,
+      description: $cDesc.value.trim(),
+      updated: new Date().toISOString()
+    };
+    if (!obj.title) { $cTitle.focus(); return; }
+    const { idx } = findItem('courses', obj.id);
+    if (idx === -1) state.data.courses.push(obj);
+    else state.data.courses[idx] = obj;
+    save(); render();
+    $('#courseModal').modal('hide');
+  });
+
+  // --- Modals: Generic Asset ---
+  function openAssetModal(kind, data=null) {
+    $assetForm.reset();
+    $aId.value = data ? data.id : '';
+    $aKind.value = kind; // templates/components/media/licenses
+    document.querySelector('#assetModal .modal-title').textContent = data ? `Edit ${kind.slice(0,1).toUpperCase()+kind.slice(1)}` : `New ${kind.slice(0,1).toUpperCase()+kind.slice(1)}`;
+    if (data) {
+      $aTitle.value = data.title||'';
+      $aCat.value = data.category||'Design';
+      $aType.value = data.type||'Template';
+      $aVer.value = data.version||'';
+      $aThumb.value = data.thumb||'asset-1.jpg';
+      $aTags.value = toTags(data.tags).join(',');
+      $aNotes.value = data.notes||'';
+      $aUrl.value = data.url||'';
+      $aUpdated.value = (data.updated||'').slice(0,10);
+    } else {
+      // guess type by kind
+      const map = {templates:'Template', components:'Component', media:'Media', licenses:'License'};
+      $aType.value = map[kind] || 'Template';
+      $aUpdated.value = new Date().toISOString().slice(0,10);
+    }
+    $('#assetModal').modal('show');
+  }
+
+  $assetForm.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const kind = $aKind.value || state.activeTab;
+    const obj = {
+      id: $aId.value || uuid(),
+      title: $aTitle.value.trim(),
+      category: $aCat.value,
+      type: $aType.value,
+      version: $aVer.value.trim(),
+      thumb: $aThumb.value,
+      tags: toTags($aTags.value),
+      notes: $aNotes.value.trim(),
+      url: $aUrl.value.trim(),
+      updated: ($aUpdated.value ? new Date($aUpdated.value) : new Date()).toISOString()
+    };
+    if (!obj.title) { $aTitle.focus(); return; }
+    const { idx } = findItem(kind, obj.id);
+    if (idx === -1) state.data[kind].push(obj);
+    else state.data[kind][idx] = obj;
+    save(); render();
+    $('#assetModal').modal('hide');
+  });
+
+  // --- Events ---
+  $btnNewCourse.addEventListener('click', ()=> openCourseModal());
+  $btnNewAsset.addEventListener('click', ()=> openAssetModal(state.activeTab));
+  $emptyAdd.addEventListener('click', ()=> {
+    if (state.activeTab === 'courses') openCourseModal();
+    else openAssetModal(state.activeTab);
+  });
+
+  // tab switching
+  $tabs.addEventListener('click', (e)=>{
+    const a = e.target.closest('a[data-tab]');
+    if (!a) return;
+    e.preventDefault();
+    $tabs.querySelectorAll('a').forEach(x=>x.classList.remove('active'));
+    a.classList.add('active');
+    state.activeTab = a.getAttribute('data-tab');
+    render();
+  });
+
+  // view toggles
+  $btnGrid.addEventListener('click', ()=>{
+    state.view = 'grid';
+    $btnGrid.classList.add('active'); $btnList.classList.remove('active');
+    render();
+  });
+  $btnList.addEventListener('click', ()=>{
+    state.view = 'list';
+    $btnList.classList.add('active'); $btnGrid.classList.remove('active');
+    render();
+  });
+
+  // filters
+  $search.addEventListener('input', (e)=>{ state.search = e.target.value; render(); });
+  $clearSearch.addEventListener('click', ()=>{ state.search=''; $search.value=''; render(); });
+  $filterCat.addEventListener('change', (e)=>{ state.category = e.target.value; render(); });
+  $sortBy.addEventListener('change', (e)=>{ state.sort = e.target.value; render(); });
+
+  // grid/list action buttons via delegation
+  document.addEventListener('click', (e)=>{
+    const viewBtn = e.target.closest('.js-view');
+    const editBtn = e.target.closest('.js-edit');
+    const delBtn  = e.target.closest('.js-del');
+    const row = e.target.closest('[data-id]');
+    if (!row) return;
+
+    const id = row.getAttribute('data-id');
+    const { item } = findItem(state.activeTab, id);
+    if (!item) return;
+
+    if (viewBtn) {
+      const details = [
+        `Title: ${item.title}`,
+        state.activeTab==='courses'
+          ? `Instructor: ${item.instructor||'Nomad'} • ${item.level||'-'} • ${item.duration||0} min`
+          : `Type: ${item.type||'-'} ${item.version?('• v'+item.version):''}`,
+        `Category: ${item.category||'-'}`,
+        `Tags: ${toTags(item.tags).join(', ')||'—'}`,
+        `Updated: ${fmtDate(item.updated)}`
+      ];
+      alert(details.join('\n'));
+    }
+
+    if (editBtn) {
+      if (state.activeTab === 'courses') openCourseModal(item);
+      else openAssetModal(state.activeTab, item);
+    }
+
+    if (delBtn) {
+      if (confirm(`Delete “${item.title}”? This cannot be undone.`)) {
+        state.data[state.activeTab] = state.data[state.activeTab].filter(x=>x.id!==id);
+        save(); render();
+      }
+    }
+  });
+
+  // --- Init ---
+  (function init(){
+    const saved = load();
+    if (saved) state.data = Object.assign(state.data, saved);
+    seedIfEmpty();
+    render();
+  })();
+
+})();
+</script>
+{% endblock extra_scripts %}
