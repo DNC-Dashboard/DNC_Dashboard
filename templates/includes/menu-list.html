@@ -104,61 +104,10 @@
 
 
 
-  <!-- <li class="nav-item {% if 'apps' in parent %} menu-open {% endif %}">
-      <a href="#" class="nav-link {% if 'apps' in parent %} active {% endif %}">
-        <i class="nav-icon fas fa-th-large"></i>
-        <p>
-          Apps
-          <i class="right fas fa-angle-left"></i>
-        </p>
-      </a>
-      <ul class="nav nav-treeview">
-        <li class="nav-item">
-          <a href="{% url 'dynamic_dt' %}" class="nav-link {% if 'dynamic_dt' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>Dynamic Tables</p>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="{% url 'dynamic_api' %}" class="nav-link {% if 'dynamic_api' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>Dynamic API</p>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="{% url 'charts' %}" class="nav-link {% if 'charts' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>Charts</p>
-          </a>
-        </li>
-      </ul>
-    </li> -->
-
-  {% if request.user.is_superuser %}
- 
-  
-
-  {% endif %} {% if not request.user.is_superuser %}
-  
-  {% endif %}
-
-  
  
  
  
-  
-  <!-- <li class="nav-header">EXAMPLES</li> -->
  
-  <!-- <li class="nav-item">
-    <a
-      href="{% url 'examples_gallery' %}"
-      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
-    >
-      <i class="nav-icon far fa-image"></i>
-      <p>Gallery</p>
-    </a>
-  </li>
-  -->
  
  
  
