@@ -94,7 +94,7 @@
         <div class="form-group">
           <label for="taskStatus">Status</label>
           <select id="taskStatus" class="form-control">
-            <option value="backlog">Backlog</option>
+            <!-- <option value="backlog">Backlog</option> -->
             <option value="todo">To Do</option>
             <option value="inprogress">In Progress</option>
             <option value="done">Done</option>
@@ -119,39 +119,72 @@
 
 <script>
 /**
- * Simple client-side Kanban
- * - drag & drop columns
- * - add/edit/delete tasks
- * - persists to localStorage
- * Switch to a backend later by swapping save/load functions.
+ * Kanban backed by Django REST API
+ *   GET/POST/PATCH/DELETE   /api/tasks/
+ * Auth: Session (requires login). CSRF header required for write ops.
  */
 (function () {
-  const LS_KEY = 'kanban.tasks.v1';
-
-  /** ---------- Storage ---------- **/
-  function loadTasks() {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (!raw) return [];
-      const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr : [];
-    } catch (e) { return []; }
-  }
-  function saveTasks(tasks) {
-    localStorage.setItem(LS_KEY, JSON.stringify(tasks));
-  }
-
-  /** ---------- State ---------- **/
-  let tasks = loadTasks();
+  const API = "/api/tasks/";   // because we included apps.pages.api_urls at /api/
+  let tasks = [];
   let dragId = null;
+  let chart;
 
-  /** ---------- Rendering ---------- **/
+  // ---- CSRF ----
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
+  }
+  const CSRF = getCookie("csrftoken");
+
+  // ---- Fetch helpers ----
+  async function apiGet() {
+    const res = await fetch(API, { credentials: "same-origin" });
+    if (!res.ok) throw new Error(`GET ${API} -> ${res.status}`);
+    return res.json();
+  }
+  async function apiPost(payload) {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+      credentials: "same-origin",
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(`POST ${API} -> ${res.status}: ${await res.text()}`);
+    return res.json();
+  }
+  async function apiPatch(id, payload) {
+    const res = await fetch(`${API}${id}/`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+      credentials: "same-origin",
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(`PATCH ${API}${id}/ -> ${res.status}: ${await res.text()}`);
+    return res.json();
+  }
+  async function apiDelete(id) {
+    const res = await fetch(`${API}${id}/`, {
+      method: "DELETE",
+      headers: { "X-CSRFToken": CSRF },
+      credentials: "same-origin",
+    });
+    if (!res.ok && res.status !== 204) throw new Error(`DELETE ${API}${id}/ -> ${res.status}`);
+  }
+
+  // ---- UI helpers ----
   const statusToCard = {
-    backlog:  { cls: 'card-info'     },
-    todo:     { cls: 'card-primary'  },
-    inprogress:{ cls: 'card-light'  },
-    done:     { cls: 'card-success'  },
+    backlog:    { cls: 'card-info'    , title: 'Backlog'     },
+    todo:       { cls: 'card-primary' , title: 'To Do'       },
+    inprogress: { cls: 'card-light'   , title: 'In Progress' },
+    done:       { cls: 'card-success' , title: 'Done'        },
   };
+
+  function escapeHtml(str) {
+    return (str || '').replace(/[&<>"']/g, m =>
+      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])
+    );
+  }
 
   function taskCardHTML(t) {
     const meta = statusToCard[t.status] || statusToCard.backlog;
@@ -161,7 +194,7 @@
         <div class="card-header">
           <h5 class="card-title">${escapeHtml(t.title)}</h5>
           <div class="card-tools">
-            <a class="btn btn-tool btn-link">#${t.number || t.id.slice(-4)}</a>
+            <a class="btn btn-tool btn-link">#${t.order || 0}</a>
             <a class="btn btn-tool js-edit" title="Edit"><i class="fas fa-pen"></i></a>
             <a class="btn btn-tool js-delete text-danger" title="Delete"><i class="fas fa-trash"></i></a>
           </div>
@@ -172,36 +205,85 @@
   }
 
   function render() {
-    // clear all columns
     document.querySelectorAll('.kanban-dropzone').forEach(z => z.innerHTML = '');
-    // group by status
     const byStatus = tasks.reduce((acc, t) => {
       (acc[t.status] = acc[t.status] || []).push(t);
       return acc;
     }, {});
     Object.entries(byStatus).forEach(([status, list]) => {
+      // keep by order ascending
+      list.sort((a,b) => (a.order||0) - (b.order||0) || a.created_at.localeCompare(b.created_at));
       const zone = document.querySelector(`.kanban-dropzone[data-dropzone="${status}"]`);
       if (!zone) return;
-      // Keep order as in array
-      const html = list.map(taskCardHTML).join('');
-      zone.insertAdjacentHTML('beforeend', html);
+      zone.insertAdjacentHTML('beforeend', list.map(taskCardHTML).join(''));
     });
   }
 
-  /** ---------- Helpers ---------- **/
-  function uuid() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-      const r = Math.random()*16|0, v = c === 'x' ? r : (r&0x3|0x8);
-      return v.toString(16);
-    });
-  }
-  function escapeHtml(str) {
-    return (str || '').replace(/[&<>"']/g, m =>
-      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])
-    );
+  // ---- CRUD wired to API ----
+  async function loadTasks() {
+    tasks = await apiGet();
+    render();
   }
 
-  /** ---------- CRUD ---------- **/
+  async function addTask(data) {
+    const created = await apiPost({
+      title: data.title,
+      desc:  data.desc || '',
+      status: data.status || 'backlog',
+    });
+    tasks.push(created);
+    render();
+  }
+
+  async function updateTask(id, patch) {
+    const updated = await apiPatch(id, patch);
+    const idx = tasks.findIndex(t => t.id === id);
+    if (idx !== -1) tasks[idx] = updated;
+    render();
+  }
+
+  async function deleteTask(id) {
+    await apiDelete(id);
+    tasks = tasks.filter(t => t.id !== id);
+    render();
+  }
+
+  // ---- Drag & drop -> change status ----
+  function onDragStart(e) {
+    const item = e.target.closest('.kanban-item');
+    if (!item) return;
+    dragId = item.dataset.id;
+    item.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  }
+  function onDragEnd(e) {
+    const item = e.target.closest('.kanban-item');
+    if (item) item.classList.remove('dragging');
+    dragId = null;
+    document.querySelectorAll('.kanban-dropzone').forEach(el => el.classList.remove('drop-hover'));
+  }
+  async function onDrop(e) {
+    const zone = e.target.closest('.kanban-dropzone');
+    if (!zone || !dragId) return;
+    e.preventDefault();
+    zone.classList.remove('drop-hover');
+    const newStatus = zone.dataset.dropzone;
+    // For simplicity now we just update status; ordering can be enhanced later
+    await updateTask(dragId, { status: newStatus });
+  }
+  function onDragOver(e) {
+    const zone = e.target.closest('.kanban-dropzone');
+    if (!zone) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    zone.classList.add('drop-hover');
+  }
+  function onDragLeave(e) {
+    const zone = e.target.closest('.kanban-dropzone');
+    if (zone) zone.classList.remove('drop-hover');
+  }
+
+  // ---- Modal wiring ----
   function openModal({mode, task, defaultStatus}) {
     const titleEl = document.getElementById('taskTitle');
     const descEl  = document.getElementById('taskDesc');
@@ -223,75 +305,13 @@
     setTimeout(() => titleEl.focus(), 150);
   }
 
-  function addTask(data) {
-    const t = {
-      id: uuid(),
-      title: data.title,
-      desc: data.desc || '',
-      status: data.status || 'backlog',
-      number: (tasks.length + 1)
-    };
-    tasks.push(t);
-    saveTasks(tasks);
-    render();
-  }
-
-  function updateTask(id, patch) {
-    const idx = tasks.findIndex(t => t.id === id);
-    if (idx === -1) return;
-    tasks[idx] = { ...tasks[idx], ...patch };
-    saveTasks(tasks);
-    render();
-  }
-
-  function deleteTask(id) {
-    tasks = tasks.filter(t => t.id !== id);
-    saveTasks(tasks);
-    render();
-  }
-
-  /** ---------- Drag & Drop ---------- **/
-  function onDragStart(e) {
-    const item = e.target.closest('.kanban-item');
-    if (!item) return;
-    dragId = item.dataset.id;
-    item.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-  }
-  function onDragEnd(e) {
-    const item = e.target.closest('.kanban-item');
-    if (item) item.classList.remove('dragging');
-    dragId = null;
-    document.querySelectorAll('.kanban-dropzone').forEach(el => el.classList.remove('drop-hover'));
-  }
-  function onDragOver(e) {
-    const zone = e.target.closest('.kanban-dropzone');
-    if (!zone) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    zone.classList.add('drop-hover');
-  }
-  function onDragLeave(e) {
-    const zone = e.target.closest('.kanban-dropzone');
-    if (zone) zone.classList.remove('drop-hover');
-  }
-  function onDrop(e) {
-    const zone = e.target.closest('.kanban-dropzone');
-    if (!zone || !dragId) return;
-    e.preventDefault();
-    zone.classList.remove('drop-hover');
-    const newStatus = zone.dataset.dropzone;
-    updateTask(dragId, { status: newStatus });
-  }
-
-  /** ---------- Event wiring ---------- **/
-  // Add Task
+  // Add Task button
   document.getElementById('btn-add-task').addEventListener('click', () => {
     openModal({ mode: 'add', defaultStatus: 'backlog' });
   });
 
   // Submit modal
-  document.getElementById('taskForm').addEventListener('submit', function (e) {
+  document.getElementById('taskForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     const id = document.getElementById('taskId').value.trim();
     const title = document.getElementById('taskTitle').value.trim();
@@ -299,14 +319,14 @@
     const status = document.getElementById('taskStatus').value;
     if (!title) return;
     if (id) {
-      updateTask(id, { title, desc, status });
+      await updateTask(id, { title, desc, status });
     } else {
-      addTask({ title, desc, status });
+      await addTask({ title, desc, status });
     }
     $('#taskModal').modal('hide');
   });
 
-  // Delegated edit/delete + drag events
+  // Delegated edit/delete + drag listeners
   document.addEventListener('click', function (e) {
     const editBtn = e.target.closest('.js-edit');
     const delBtn  = e.target.closest('.js-delete');
@@ -318,11 +338,10 @@
     if (delBtn) {
       const card = delBtn.closest('.kanban-item');
       const id = card.dataset.id;
-      if (confirm('Delete this task?')) deleteTask(id);
+      if (confirm('Delete this task?')) deleteTask(id).catch(console.error);
     }
   });
 
-  // Drag listeners
   document.addEventListener('dragstart', onDragStart);
   document.addEventListener('dragend', onDragEnd);
   document.querySelectorAll('.kanban-dropzone').forEach(zone => {
@@ -331,22 +350,9 @@
     zone.addEventListener('drop', onDrop);
   });
 
-  /** ---------- Initial seed (optional) ---------- **/
-  if (tasks.length === 0) {
-    tasks = [
-      { id: uuid(), title: 'Create Labels', desc: '', status: 'backlog', number: 3 },
-      { id: uuid(), title: 'Create Issue template', desc: '', status: 'backlog', number: 4 },
-      { id: uuid(), title: 'Create PR template', desc: '', status: 'backlog', number: 6 },
-      { id: uuid(), title: 'Create Actions', desc: 'Lorem ipsum…', status: 'backlog', number: 7 },
-      { id: uuid(), title: 'Create first milestone', desc: '', status: 'todo', number: 5 },
-      { id: uuid(), title: 'Update Readme', desc: 'Lorem ipsum…', status: 'inprogress', number: 2 },
-      { id: uuid(), title: 'Create repo', desc: '', status: 'done', number: 1 },
-    ];
-    saveTasks(tasks);
-  }
-
-  // Initial render
-  render();
+  // Initial load
+  loadTasks().catch(err => console.error("Load tasks failed:", err));
 })();
 </script>
+
 {% endblock extra_scripts %}

@@ -111,14 +111,20 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 # -------------------- DATABASE ----------------------------
-DB_ENGINE   = os.getenv('DB_ENGINE'   , None)
-DB_USERNAME = os.getenv('DB_USERNAME' , None)
-DB_PASS     = os.getenv('DB_PASS'     , None)
-DB_HOST     = os.getenv('DB_HOST'     , None)
-DB_PORT     = os.getenv('DB_PORT'     , None)
-DB_NAME     = os.getenv('DB_NAME'     , None)
+DB_ENGINE   = os.getenv('DB_ENGINE')        # e.g., "postgresql"
+DB_USERNAME = os.getenv('DB_USERNAME')
+DB_PASS     = os.getenv('DB_PASS')
+DB_HOST     = os.getenv('DB_HOST')
+DB_PORT     = os.getenv('DB_PORT')
+DB_NAME     = os.getenv('DB_NAME')
+DB_SSLMODE  = os.getenv('DB_SSLMODE')       # e.g., "require"
 
 if DB_ENGINE and DB_NAME and DB_USERNAME:
+    OPTIONS = {}
+     # Add SSL for Postgres on RDS
+    if DB_ENGINE == 'postgresql' and DB_SSLMODE:
+        OPTIONS['sslmode'] = DB_SSLMODE
+        
     DATABASES = {
       'default': {
         'ENGINE'  : 'django.db.backends.' + DB_ENGINE,
@@ -127,6 +133,7 @@ if DB_ENGINE and DB_NAME and DB_USERNAME:
         'PASSWORD': DB_PASS,
         'HOST'    : DB_HOST,
         'PORT'    : DB_PORT,
+        'OPTIONS' : OPTIONS,
       },
     }
 else:
