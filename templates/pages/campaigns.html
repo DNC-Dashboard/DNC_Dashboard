@@ -1,13 +1,18 @@
-{% extends 'layouts/base.html' %} {% load static %} {% block title %} Widgets {% endblock title %} {% block bodyclass %} hold-transition sidebar-mini {% endblock bodyclass %} {% block content %}
+{% extends 'layouts/base.html' %}
+{% load static %}
 
+{% block title %} Campaigns {% endblock title %}
+{% block bodyclass %} hold-transition sidebar-mini {% endblock bodyclass %}
+
+{% block content %}
 <div class="content-wrapper">
+  <!-- Page Header -->
   <div class="content-header">
     <div class="container-fluid">
       <div class="row mb-2">
         <div class="col-sm-6">
           <h1 class="m-0">Campaigns</h1>
         </div>
-        <!-- /.col -->
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="#">Home</a></li>
@@ -18,11 +23,133 @@
     </div>
   </div>
 
+  <!-- Main content -->
   <section class="content">
     <div class="container-fluid">
-      <!-- Add your contennt here -->
+      <!-- Campaign Cards Row -->
+      <div class="row">
+        <!-- Card 1: Impressions -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-info">
+            <div class="inner">
+              <h3>12,450</h3>
+              <p>Impressions</p>
+            </div>
+            <div class="icon">
+              <i class="ion ion-eye"></i>
+            </div>
+            <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+          </div>
+        </div>
+
+        <!-- Card 2: Clicks -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-success">
+            <div class="inner">
+              <h3>1,235</h3>
+              <p>Clicks</p>
+            </div>
+            <div class="icon">
+              <i class="ion ion-ios-click"></i>
+            </div>
+            <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+          </div>
+        </div>
+
+        <!-- Card 3: CTR -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-warning">
+            <div class="inner">
+              <h3>9.9<sup style="font-size: 20px">%</sup></h3>
+              <p>CTR</p>
+            </div>
+            <div class="icon">
+              <i class="ion ion-stats-bars"></i>
+            </div>
+            <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+          </div>
+        </div>
+
+        <!-- Card 4: Conversions -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-danger">
+            <div class="inner">
+              <h3>87</h3>
+              <p>Conversions</p>
+            </div>
+            <div class="icon">
+              <i class="ion ion-checkmark"></i>
+            </div>
+            <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table or campaign list -->
+      <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Campaign List</h3>
+            </div>
+            <div class="card-body table-responsive p-0" style="max-height: 400px;">
+              <table class="table table-head-fixed text-nowrap">
+                <thead>
+                  <tr>
+                    <th>Campaign Name</th>
+                    <th>Budget ($)</th>
+                    <th>Impressions</th>
+                    <th>Clicks</th>
+                    <th>CTR (%)</th>
+                    <th>Conversions</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Spring Sale</td>
+                    <td>500</td>
+                    <td>12,450</td>
+                    <td>1,235</td>
+                    <td>9.9</td>
+                    <td>87</td>
+                    <td><span class="badge bg-success">Active</span></td>
+                  </tr>
+                  <tr>
+                    <td>Winter Promo</td>
+                    <td>300</td>
+                    <td>8,230</td>
+                    <td>980</td>
+                    <td>11.9</td>
+                    <td>45</td>
+                    <td><span class="badge bg-warning">Paused</span></td>
+                  </tr>
+                  <tr>
+                    <td>Summer Launch</td>
+                    <td>700</td>
+                    <td>15,400</td>
+                    <td>1,450</td>
+                    <td>9.4</td>
+                    <td>102</td>
+                    <td><span class="badge bg-danger">Ended</span></td>
+                  </tr>
+                  <tr>
+                    <td>Autumn Deals</td>
+                    <td>400</td>
+                    <td>9,800</td>
+                    <td>1,120</td>
+                    <td>11.4</td>
+                    <td>68</td>
+                    <td><span class="badge bg-success">Active</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </section>
 </div>
-
 {% endblock content %}
