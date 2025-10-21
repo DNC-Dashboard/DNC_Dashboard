@@ -10,7 +10,11 @@ from .ga import (
     get_realtime_active
 )
 
+@login_required(login_url='/login/')
+def index(request):
+    return render(request, 'pages/index.html')
 
+    
 
 
 def register(request):
@@ -32,9 +36,7 @@ def register(request):
 
 
 
-@login_required(login_url='/login/')
-def index(request):
-    return render(request, 'pages/index.html')
+
 
 @login_required(login_url='/login/')
 def members(request):
