@@ -26,3 +26,7 @@ gunicorn==23.0.0
 #psycopg2-binary==2.9.9
 #mysqlclient==2.1.1
 django-dbbackup==4.2.1
+
+
+google-analytics-data==0.18.2
+google-auth==2.34.0
