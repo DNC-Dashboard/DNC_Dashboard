@@ -1,11 +1,4 @@
-{% extends 'layouts/base.html' %}
-{% load static %}
-
-{% block title %}Analytics{% endblock title %}
-{% block bodyclass %}hold-transition sidebar-mini{% endblock bodyclass %}
-
-{% block content %}
-
+{% extends 'layouts/base.html' %} {% load static %} {% block title %} Widgets {% endblock title %} {% block bodyclass %} hold-transition sidebar-mini {% endblock bodyclass %} {% block content %}
 
 <div class="content-wrapper">
   <div class="content-header">
@@ -28,98 +21,251 @@
   <section class="content">
     <div class="container-fluid">
       <!-- Add your contennt here -->
-
-      <!-- GA4 Traffic: cards + chart -->
-      <div class="row" id="ga-traffic">
-        <div class="col-md-4">
-          <div class="small-box bg-info">
-            <div class="inner">
-              <h3 id="ga-sessions">–</h3>
-              <p>Sessions (last 7 days)</p>
-            </div>
-            <div class="icon"><i class="fas fa-chart-line"></i></div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="small-box bg-success">
-            <div class="inner">
-              <h3 id="ga-users">–</h3>
-              <p>Active Users (last 7 days)</p>
-            </div>
-            <div class="icon"><i class="fas fa-user-friends"></i></div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="small-box bg-warning">
-            <div class="inner">
-              <h3 id="ga-pageviews">–</h3>
-              <p>Pageviews (last 7 days)</p>
-            </div>
-            <div class="icon"><i class="fas fa-eye"></i></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div
-          class="card-header d-flex align-items-center justify-content-between"
-        >
-          <h3 class="card-title m-0">
-            Sessions (Last <span id="ga-days-label">7</span> Days)
-          </h3>
-          <div>
-            <button class="btn btn-sm btn-outline-primary" data-days="7">
-              7d
-            </button>
-            <button class="btn btn-sm btn-outline-primary" data-days="14">
-              14d
-            </button>
-            <button class="btn btn-sm btn-outline-primary" data-days="30">
-              30d
-            </button>
-          </div>
-        </div>
-        <div class="card-body">
-          <canvas id="gaSessionsChart" height="120"></canvas>
-        </div>
-      </div>
-
-      <!-- Chart.js -->
-      <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
-     <script>
-  const apiBase = "/api/analytics/traffic"; // match your urls.py (no trailing slash)
-  let chart;
-
-  async function loadTraffic(days = 7) {
-    const res = await fetch(`${apiBase}?days=${days}`, { cache: "no-store" });
-    if (!res.ok) { console.error("Traffic API failed:", res.status, await res.text()); return; }
-    const { summary, timeseries } = await res.json();
-
-    // Update cards
-    document.getElementById("ga-sessions").textContent  = (summary.sessions || 0).toLocaleString();
-    document.getElementById("ga-users").textContent     = (summary.activeUsers || 0).toLocaleString();
-    document.getElementById("ga-pageviews").textContent = (summary.pageviews || 0).toLocaleString();
-
-    // Draw chart
-    const ctx = document.getElementById("gaSessionsChart");
-    if (chart) chart.destroy();
-    chart = new Chart(ctx, {
-      type: "line",
-      data: { labels: timeseries.labels, datasets: [{ label: "Sessions", data: timeseries.data, fill: false, tension: 0.3 }] },
-      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-    });
+       <!-- ======= Campaigns Dashboard ======= -->
+<style>
+  .kpi-card{
+    border:0;border-radius:14px;overflow:hidden;
+    box-shadow:0 8px 20px rgba(0,0,0,.06);
+    transform:translateY(0);transition:transform .2s ease,box-shadow .2s ease;
   }
+  .kpi-card:hover{ transform:translateY(-2px); box-shadow:0 14px 28px rgba(0,0,0,.10); }
+  .kpi-value{ font-size:clamp(22px,3.6vw,34px); font-weight:800; line-height:1; }
+  .kpi-sub{ opacity:.85 }
+  .chart-card{ border:0;border-radius:14px;box-shadow:0 8px 20px rgba(0,0,0,.06); }
+  .section-title{ font-weight:700; letter-spacing:.2px; }
+  .table thead th{ font-weight:600; text-transform:uppercase; font-size:12px; letter-spacing:.4px }
+  code{ padding:2px 6px; background:#f6f8fa; border-radius:6px; }
+</style>
 
-  // range buttons: <button data-days="7"> etc.
-  document.addEventListener("click", (e) => {
-    if (e.target.matches("[data-days]")) loadTraffic(parseInt(e.target.dataset.days, 10));
+<!-- KPI ROW 1: Marketing $$$ + Conversion -->
+<div class="row">
+  <div class="col-xl-3 col-lg-6 mb-3">
+    <div class="card kpi-card" style="background:linear-gradient(135deg,#7c4dff,#651fff);color:white;">
+      <div class="card-body d-flex align-items-center">
+        <i class="fas fa-dollar-sign fa-2x mr-3 opacity-75"></i>
+        <div>
+          <div class="kpi-value">{{ total_cost|default:0|floatformat:2 }}</div>
+          <div class="kpi-sub">Total Cost (7d)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-lg-6 mb-3">
+    <div class="card kpi-card" style="background:linear-gradient(135deg,#ff5252,#ff1744);color:white;">
+      <div class="card-body d-flex align-items-center">
+        <i class="fas fa-bullseye fa-2x mr-3 opacity-75"></i>
+        <div>
+          <div class="kpi-value">{% if cpl %}{{ cpl|floatformat:2 }}{% else %}—{% endif %}</div>
+          <div class="kpi-sub">Cost per Lead (CPL)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-lg-6 mb-3">
+    <div class="card kpi-card" style="background:linear-gradient(135deg,#00c853,#00a152);color:white;">
+      <div class="card-body d-flex align-items-center">
+        <i class="fas fa-shopping-cart fa-2x mr-3 opacity-75"></i>
+        <div>
+          <div class="kpi-value">{% if cps %}{{ cps|floatformat:2 }}{% else %}—{% endif %}</div>
+          <div class="kpi-sub">Cost per Sale (CPS)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-lg-6 mb-3">
+    <div class="card kpi-card">
+      <div class="card-body d-flex align-items-center">
+        <i class="fas fa-funnel-dollar fa-2x mr-3 text-muted"></i>
+        <div>
+          <div class="kpi-value">{{ leads|default:0 }} / {{ sales|default:0 }}</div>
+          <div class="kpi-sub">Leads • Sales (7d)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- KPI ROW 2: GA Overview -->
+<div class="row">
+  <div class="col-xl-3 col-lg-6 mb-3">
+    <div class="card kpi-card" style="background:linear-gradient(135deg,#00bcd4,#0097a7);color:white;">
+      <div class="card-body d-flex align-items-center">
+        <i class="fas fa-chart-line fa-2x mr-3 opacity-75"></i>
+        <div>
+          <div class="kpi-value">{{ kpi.sessions|default:0 }}</div>
+          <div class="kpi-sub">Sessions (7d)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-lg-6 mb-3">
+    <div class="card kpi-card" style="background:linear-gradient(135deg,#4caf50,#2e7d32);color:white;">
+      <div class="card-body d-flex align-items-center">
+        <i class="fas fa-user-friends fa-2x mr-3 opacity-75"></i>
+        <div>
+          <div class="kpi-value">{{ kpi.activeUsers|default:0 }}</div>
+          <div class="kpi-sub">Active Users (7d)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-lg-6 mb-3">
+    <div class="card kpi-card" style="background:linear-gradient(135deg,#ffc107,#ff9800);color:#212529;">
+      <div class="card-body d-flex align-items-center">
+        <i class="far fa-file-alt fa-2x mr-3" style="opacity:.75"></i>
+        <div>
+          <div class="kpi-value">{{ kpi.pageviews|default:0 }}</div>
+          <div class="kpi-sub">Pageviews (7d)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-lg-6 mb-3">
+    <div class="card kpi-card">
+      <div class="card-body d-flex align-items-center">
+        <i class="far fa-clock fa-2x mr-3 text-muted"></i>
+        <div>
+          <div class="h5 mb-0">Avg Session (7d)</div>
+          <div class="text-muted">{{ kpi.avgSession|default:"0:00:00" }} • Engagement {{ kpi.engagementRate|default:"0%" }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHARTS ROW -->
+<div class="row">
+  <div class="col-lg-8 mb-3">
+    <div class="card chart-card">
+      <div class="card-header"><h3 class="card-title section-title">Sessions & Users (Last 30 Days)</h3></div>
+      <div class="card-body" style="height:340px;">
+        <canvas id="line30"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4 mb-3">
+    <div class="card chart-card mb-3">
+      <div class="card-header"><h3 class="card-title section-title">Devices (7d)</h3></div>
+      <div class="card-body" style="height:260px;">
+        <canvas id="devicesChart"></canvas>
+      </div>
+    </div>
+    <div class="card chart-card">
+      <div class="card-header"><h3 class="card-title section-title">Top Countries (7d)</h3></div>
+      <div class="card-body" style="height:260px;">
+        <canvas id="countriesChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOP PAGES + CAMPAIGN SUMMARY -->
+<div class="row">
+  <div class="col-xl-7 mb-3">
+    <div class="card chart-card">
+      <div class="card-header"><h3 class="card-title section-title">Top Pages (7d)</h3></div>
+      <div class="card-body table-responsive p-0">
+        <table class="table table-hover mb-0">
+          <thead><tr><th>Title</th><th>Path</th><th class="text-right">Views</th></tr></thead>
+          <tbody>
+          {% for p in top_pages %}
+            <tr>
+              <td style="max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="{{ p.title }}">{{ p.title }}</td>
+              <td><code>{{ p.path }}</code></td>
+              <td class="text-right">{{ p.views }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="3" class="text-center text-muted">No page data yet.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-5 mb-3">
+    <div class="card chart-card">
+      <div class="card-header"><h3 class="card-title section-title">Campaign Summary (7d)</h3></div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-6 mb-2">
+            <div class="d-flex justify-content-between"><span class="text-muted">Spend</span><strong>{{ total_cost|default:0|floatformat:2 }}</strong></div>
+          </div>
+          <div class="col-6 mb-2">
+            <div class="d-flex justify-content-between"><span class="text-muted">Leads</span><strong>{{ leads|default:0 }}</strong></div>
+          </div>
+          <div class="col-6 mb-2">
+            <div class="d-flex justify-content-between"><span class="text-muted">Sales</span><strong>{{ sales|default:0 }}</strong></div>
+          </div>
+          <div class="col-6 mb-2">
+            <div class="d-flex justify-content-between"><span class="text-muted">CPL</span><strong>{% if cpl %}{{ cpl|floatformat:2 }}{% else %}—{% endif %}</strong></div>
+          </div>
+          <div class="col-6 mb-2">
+            <div class="d-flex justify-content-between"><span class="text-muted">CPS</span><strong>{% if cps %}{{ cps|floatformat:2 }}{% else %}—{% endif %}</strong></div>
+          </div>
+          <div class="col-6 mb-2">
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">Lead→Sale Conv.</span>
+            
+            </div>
+          </div>
+        </div>
+        <small class="text-muted d-block mt-2">
+          Tip: wire spend/leads/sales from Google Ads/CRM later; currently read from .env.
+        </small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts (Chart.js) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Expect these JSON vars from your view (same as analytics page):
+  const labels30        = {{ series_labels_json|default:"[]" }};
+  const seriesSessions  = {{ series_sessions_json|default:"[]" }};
+  const seriesUsers     = {{ series_users_json|default:"[]" }};
+  const devicesLabels   = {{ devices_labels_json|default:"[]" }};
+  const devicesValues   = {{ devices_values_json|default:"[]" }};
+  const countriesLabels = {{ countries_labels_json|default:"[]" }};
+  const countriesValues = {{ countries_values_json|default:"[]" }};
+
+  // Line chart
+  new Chart(document.getElementById('line30'), {
+    type: 'line',
+    data: {
+      labels: labels30,
+      datasets: [
+        { label: 'Sessions', data: seriesSessions, tension:.35 },
+        { label: 'Active Users', data: seriesUsers, tension:.35 }
+      ]
+    },
+    options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
   });
 
-  // initial load
-  loadTraffic(7).catch(console.error);
-</script>
+  // Devices doughnut
+  new Chart(document.getElementById('devicesChart'), {
+    type: 'doughnut',
+    data: { labels: devicesLabels, datasets: [{ data: devicesValues }] },
+    options: { responsive:true, plugins:{ legend:{ position:'bottom' } } }
+  });
 
+  // Countries bar
+  new Chart(document.getElementById('countriesChart'), {
+    type: 'bar',
+    data: { labels: countriesLabels, datasets: [{ label:'Sessions', data: countriesValues }] },
+    options: { responsive:true, scales:{ y:{ beginAtZero:true } } }
+  });
+</script>
+<!-- ======= /Campaigns Dashboard ======= -->
+
+
+
+
+      
     </div>
   </section>
 </div>

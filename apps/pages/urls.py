@@ -1,9 +1,11 @@
 from django.urls import path
 from . import views
+from apps.analytics.onepage import analytics_page
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path('analytics/', views.analytics, name='analytics'),
+    # path('analytics/', views.analytics, name='analytics'),
+    path('analytics/', views.analytics_page, name='analytics_page'),
     path('task_management/', views.task_management, name='task_management'),
     path('campaigns/', views.campaigns, name='campaigns'),
     path('profile/', views.profile, name='profile'),   # ✅ final fixed route

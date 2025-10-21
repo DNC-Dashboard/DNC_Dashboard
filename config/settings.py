@@ -17,7 +17,7 @@ from str2bool import str2bool
 # -------------------- ENV & BASE_DIR ----------------------
 # Load .env from project root (same folder as manage.py)
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR / ".env",override=True)
 
 # -------------------- GA4 CONFIG (ADDED) ------------------
 GA4_PROPERTY_ID = os.getenv("GA4_PROPERTY_ID")  # e.g., 506017731
