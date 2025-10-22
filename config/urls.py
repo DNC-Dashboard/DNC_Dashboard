@@ -4,6 +4,12 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 from django.contrib.auth import views as auth_views
 
+from django.http import JsonResponse
+
+def health_view(_request):
+    return JsonResponse({"status": "ok"})
+
+
 # --- Alias the auth namespace used by templates ---
 auth_patterns = [
     # Point both to your Configuration page (where you handle password change)
@@ -16,6 +22,10 @@ auth_patterns = [
 urlpatterns = [
     # Admin
     path('admin/', admin.site.urls),
+    path("health/", health_view, name="health"),
+    path('api/', include('apps.tasks.urls')),
+
+
 
     # Auth
     path('login/',  auth_views.LoginView.as_view(template_name='accounts/login.html'), name='login'),
