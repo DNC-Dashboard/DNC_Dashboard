@@ -1,0 +1,48 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install rsync + ssh client
+        run: sudo apt-get update && sudo apt-get install -y rsync openssh-client
+
+      - name: Configure SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # For simplicity we skip host-key checking (you can replace with ssh-keyscan for stricter security)
+          printf "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+
+      - name: Rsync code to server
+        run: |
+          rsync -az --delete \
+            --exclude='.git*' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='venv' --exclude='.venv' \
+            --exclude='__pycache__' \
+            --exclude='.env' \
+            --exclude='db.sqlite3' \
+            --exclude='media' \
+            --exclude='staticfiles' \
+            ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/dncouncil/apps/mydjango/
+
+      - name: Run deploy script on server
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} '
+            set -e
+            sed -i "s/\r$//" /home/dncouncil/apps/mydjango/deploy.sh || true
+            chmod +x /home/dncouncil/apps/mydjango/deploy.sh || true
+            /bin/bash /home/dncouncil/apps/mydjango/deploy.sh
+          '

@@ -1,0 +1,138 @@
+{% load i18n static admin_adminlte %}
+
+<ul
+  class="nav nav-pills nav-sidebar flex-column"
+  data-widget="treeview"
+  role="menu"
+  data-accordion="false"
+>
+
+  {% admin_get_menu as app_list %} {% if app_list %} {% for app in app_list %}
+  {% if app.has_perms and not app.pinned %}
+  
+  {% endif %} {% endfor %} {% endif %}
+  <li class="nav-item">
+    <a
+      href="{% url 'index' %}"
+      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
+    >
+      <i class="nav-icon fas fa-tachometer-alt"></i>
+      <p>Dashboard</p>
+    </a>
+  </li>
+
+ 
+  <li class="nav-item">
+    <a
+      href="{% url 'analytics' %}"
+      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
+    >
+      <i class="nav-icon fas fa-chart-line"></i>
+      <p>Analytics</p>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a
+      href="{% url 'task_management' %}"
+      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
+    >
+      <i class="nav-icon fas fa-tasks"></i>
+      <p>Task Management</p>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a
+      href="{% url 'projects' %}"
+      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
+    >
+      <i class="nav-icon fas fa-ad"></i>
+      <p>Projects</p>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a
+      href="{% url 'campaigns' %}"
+      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
+    >
+      <i class="nav-icon fas fa-ad"></i>
+      <p>Campaings</p>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a
+      href="{% url 'profile' %}"
+      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
+    >
+      <i class="nav-icon fas fa-user"></i>
+      <p>Nomand</p>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a
+      href="{% url 'configuration' %}"
+      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
+    >
+      <i class="nav-icon fas fa-user-cog "></i>
+      <p>Configuration</p>
+    </a>
+  </li>
+
+
+  <li class="nav-item">
+    <a
+      href="{% url 'assets' %}"
+      class="nav-link {% if 'gallery' in segment %} active {% endif %}"
+    >
+      <i class="nav-icon fas fa-user-cog "></i>
+      <p>Assets</p>
+    </a>
+  </li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+  {% if request.user.is_authenticated %}
+  <li class="nav-item">
+    <a href="{% url 'logout' %}" class="nav-link">
+      <i class="fa fa-sign-out-alt nav-icon"></i>
+      <p>Logout</p>
+    </a>
+  </li>
+  {% else %}
+  <li class="nav-item">
+    <a href="{% url 'login' %}" class="nav-link">
+      <i class="fa fa-sign-in-alt nav-icon"></i>
+      <p>Login</p>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a href="{% url 'register' %}" class="nav-link">
+      <i class="fa fa-user-plus nav-icon"></i>
+      <p>Register</p>
+    </a>
+  </li>
+  {% endif %}
+
+ 
+</ul>

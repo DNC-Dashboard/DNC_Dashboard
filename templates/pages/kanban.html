@@ -1,0 +1,358 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+{% block title %} Kanban Board {% endblock title %}
+
+{% block extrastyle %}
+<link rel="stylesheet" href="{% static 'plugins/ekko-lightbox/ekko-lightbox.css' %}">
+<style>
+  .kanban .kanban-dropzone { min-height: 24px; padding-bottom: 2px; }
+  .kanban .kanban-item.dragging { opacity: .5; }
+  .kanban .drop-hover { outline: 2px dashed rgba(0,0,0,.2); outline-offset: 4px; }
+  .card-tools .btn-tool { cursor: pointer; }
+</style>
+{% endblock extrastyle %}
+
+{% block bodyclass %} hold-transition sidebar-mini {% endblock bodyclass %}
+
+{% block content %}
+<div class="content-wrapper kanban">
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row align-items-center">
+        <div class="col-sm-6">
+          <h1>Kanban Board</h1>
+        </div>
+        <div class="col-sm-6 d-none d-sm-flex justify-content-end">
+          <button id="btn-add-task" class="btn btn-primary">
+            <i class="fas fa-plus mr-1"></i> Add Task
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="content pb-3">
+    <div class="container-fluid h-100">
+
+      <!-- Backlog -->
+     
+
+      <!-- To Do -->
+      <div class="card card-row card-primary" data-status="todo">
+        <div class="card-header">
+          <h3 class="card-title">To Do</h3>
+        </div>
+        <div class="card-body kanban-dropzone" data-dropzone="todo">
+          <!-- items render here -->
+        </div>
+      </div>
+
+      <!-- In Progress -->
+      <div class="card card-row card-default" data-status="inprogress">
+        <div class="card-header bg-info">
+          <h3 class="card-title">In Progress</h3>
+        </div>
+        <div class="card-body kanban-dropzone" data-dropzone="inprogress">
+          <!-- items render here -->
+        </div>
+      </div>
+
+      <!-- Done -->
+      <div class="card card-row card-success" data-status="done">
+        <div class="card-header">
+          <h3 class="card-title">Done</h3>
+        </div>
+        <div class="card-body kanban-dropzone" data-dropzone="done">
+          <!-- items render here -->
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<!-- Modal: Add/Edit Task -->
+<div class="modal fade" id="taskModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" id="taskForm">
+      <div class="modal-header">
+        <h5 class="modal-title" id="taskModalTitle">Add Task</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="taskId">
+        <div class="form-group">
+          <label for="taskTitle">Title</label>
+          <input type="text" id="taskTitle" class="form-control" required maxlength="120">
+        </div>
+        <div class="form-group">
+          <label for="taskDesc">Description (optional)</label>
+          <textarea id="taskDesc" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="taskStatus">Status</label>
+          <select id="taskStatus" class="form-control">
+            <!-- <option value="backlog">Backlog</option> -->
+            <option value="todo">To Do</option>
+            <option value="inprogress">In Progress</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save mr-1"></i> Save
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra_scripts %}
+<script src="{% static 'plugins/ekko-lightbox/ekko-lightbox.min.js' %}"></script>
+<script src="{% static 'plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js' %}"></script>
+<script src="{% static 'plugins/filterizr/jquery.filterizr.min.js' %}"></script>
+
+<script>
+/**
+ * Kanban backed by Django REST API
+ *   GET/POST/PATCH/DELETE   /api/tasks/
+ * Auth: Session (requires login). CSRF header required for write ops.
+ */
+(function () {
+  const API = "/api/tasks/";   // because we included apps.pages.api_urls at /api/
+  let tasks = [];
+  let dragId = null;
+  let chart;
+
+  // ---- CSRF ----
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
+  }
+  const CSRF = getCookie("csrftoken");
+
+  // ---- Fetch helpers ----
+  async function apiGet() {
+    const res = await fetch(API, { credentials: "same-origin" });
+    if (!res.ok) throw new Error(`GET ${API} -> ${res.status}`);
+    return res.json();
+  }
+  async function apiPost(payload) {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+      credentials: "same-origin",
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(`POST ${API} -> ${res.status}: ${await res.text()}`);
+    return res.json();
+  }
+  async function apiPatch(id, payload) {
+    const res = await fetch(`${API}${id}/`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+      credentials: "same-origin",
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(`PATCH ${API}${id}/ -> ${res.status}: ${await res.text()}`);
+    return res.json();
+  }
+  async function apiDelete(id) {
+    const res = await fetch(`${API}${id}/`, {
+      method: "DELETE",
+      headers: { "X-CSRFToken": CSRF },
+      credentials: "same-origin",
+    });
+    if (!res.ok && res.status !== 204) throw new Error(`DELETE ${API}${id}/ -> ${res.status}`);
+  }
+
+  // ---- UI helpers ----
+  const statusToCard = {
+    backlog:    { cls: 'card-info'    , title: 'Backlog'     },
+    todo:       { cls: 'card-primary' , title: 'To Do'       },
+    inprogress: { cls: 'card-light'   , title: 'In Progress' },
+    done:       { cls: 'card-success' , title: 'Done'        },
+  };
+
+  function escapeHtml(str) {
+    return (str || '').replace(/[&<>"']/g, m =>
+      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])
+    );
+  }
+
+  function taskCardHTML(t) {
+    const meta = statusToCard[t.status] || statusToCard.backlog;
+    const desc = (t.desc || '').trim();
+    return `
+      <div class="card ${meta.cls} card-outline kanban-item" draggable="true" data-id="${t.id}">
+        <div class="card-header">
+          <h5 class="card-title">${escapeHtml(t.title)}</h5>
+          <div class="card-tools">
+            <a class="btn btn-tool btn-link">#${t.order || 0}</a>
+            <a class="btn btn-tool js-edit" title="Edit"><i class="fas fa-pen"></i></a>
+            <a class="btn btn-tool js-delete text-danger" title="Delete"><i class="fas fa-trash"></i></a>
+          </div>
+        </div>
+        ${desc ? `<div class="card-body"><p>${escapeHtml(desc)}</p></div>` : ``}
+      </div>
+    `;
+  }
+
+  function render() {
+    document.querySelectorAll('.kanban-dropzone').forEach(z => z.innerHTML = '');
+    const byStatus = tasks.reduce((acc, t) => {
+      (acc[t.status] = acc[t.status] || []).push(t);
+      return acc;
+    }, {});
+    Object.entries(byStatus).forEach(([status, list]) => {
+      // keep by order ascending
+      list.sort((a,b) => (a.order||0) - (b.order||0) || a.created_at.localeCompare(b.created_at));
+      const zone = document.querySelector(`.kanban-dropzone[data-dropzone="${status}"]`);
+      if (!zone) return;
+      zone.insertAdjacentHTML('beforeend', list.map(taskCardHTML).join(''));
+    });
+  }
+
+  // ---- CRUD wired to API ----
+  async function loadTasks() {
+    tasks = await apiGet();
+    render();
+  }
+
+  async function addTask(data) {
+    const created = await apiPost({
+      title: data.title,
+      desc:  data.desc || '',
+      status: data.status || 'backlog',
+    });
+    tasks.push(created);
+    render();
+  }
+
+  async function updateTask(id, patch) {
+    const updated = await apiPatch(id, patch);
+    const idx = tasks.findIndex(t => t.id === id);
+    if (idx !== -1) tasks[idx] = updated;
+    render();
+  }
+
+  async function deleteTask(id) {
+    await apiDelete(id);
+    tasks = tasks.filter(t => t.id !== id);
+    render();
+  }
+
+  // ---- Drag & drop -> change status ----
+  function onDragStart(e) {
+    const item = e.target.closest('.kanban-item');
+    if (!item) return;
+    dragId = item.dataset.id;
+    item.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  }
+  function onDragEnd(e) {
+    const item = e.target.closest('.kanban-item');
+    if (item) item.classList.remove('dragging');
+    dragId = null;
+    document.querySelectorAll('.kanban-dropzone').forEach(el => el.classList.remove('drop-hover'));
+  }
+  async function onDrop(e) {
+    const zone = e.target.closest('.kanban-dropzone');
+    if (!zone || !dragId) return;
+    e.preventDefault();
+    zone.classList.remove('drop-hover');
+    const newStatus = zone.dataset.dropzone;
+    // For simplicity now we just update status; ordering can be enhanced later
+    await updateTask(dragId, { status: newStatus });
+  }
+  function onDragOver(e) {
+    const zone = e.target.closest('.kanban-dropzone');
+    if (!zone) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    zone.classList.add('drop-hover');
+  }
+  function onDragLeave(e) {
+    const zone = e.target.closest('.kanban-dropzone');
+    if (zone) zone.classList.remove('drop-hover');
+  }
+
+  // ---- Modal wiring ----
+  function openModal({mode, task, defaultStatus}) {
+    const titleEl = document.getElementById('taskTitle');
+    const descEl  = document.getElementById('taskDesc');
+    const idEl    = document.getElementById('taskId');
+    const statusEl= document.getElementById('taskStatus');
+    document.getElementById('taskModalTitle').textContent = mode === 'edit' ? 'Edit Task' : 'Add Task';
+    if (mode === 'edit' && task) {
+      idEl.value = task.id;
+      titleEl.value = task.title || '';
+      descEl.value = task.desc || '';
+      statusEl.value = task.status || 'backlog';
+    } else {
+      idEl.value = '';
+      titleEl.value = '';
+      descEl.value = '';
+      statusEl.value = defaultStatus || 'backlog';
+    }
+    $('#taskModal').modal('show');
+    setTimeout(() => titleEl.focus(), 150);
+  }
+
+  // Add Task button
+  document.getElementById('btn-add-task').addEventListener('click', () => {
+    openModal({ mode: 'add', defaultStatus: 'backlog' });
+  });
+
+  // Submit modal
+  document.getElementById('taskForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const id = document.getElementById('taskId').value.trim();
+    const title = document.getElementById('taskTitle').value.trim();
+    const desc = document.getElementById('taskDesc').value.trim();
+    const status = document.getElementById('taskStatus').value;
+    if (!title) return;
+    if (id) {
+      await updateTask(id, { title, desc, status });
+    } else {
+      await addTask({ title, desc, status });
+    }
+    $('#taskModal').modal('hide');
+  });
+
+  // Delegated edit/delete + drag listeners
+  document.addEventListener('click', function (e) {
+    const editBtn = e.target.closest('.js-edit');
+    const delBtn  = e.target.closest('.js-delete');
+    if (editBtn) {
+      const card = editBtn.closest('.kanban-item');
+      const t = tasks.find(x => x.id === card.dataset.id);
+      if (t) openModal({ mode: 'edit', task: t });
+    }
+    if (delBtn) {
+      const card = delBtn.closest('.kanban-item');
+      const id = card.dataset.id;
+      if (confirm('Delete this task?')) deleteTask(id).catch(console.error);
+    }
+  });
+
+  document.addEventListener('dragstart', onDragStart);
+  document.addEventListener('dragend', onDragEnd);
+  document.querySelectorAll('.kanban-dropzone').forEach(zone => {
+    zone.addEventListener('dragover', onDragOver);
+    zone.addEventListener('dragleave', onDragLeave);
+    zone.addEventListener('drop', onDrop);
+  });
+
+  // Initial load
+  loadTasks().catch(err => console.error("Load tasks failed:", err));
+})();
+</script>
+
+{% endblock extra_scripts %}

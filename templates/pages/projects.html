@@ -1,0 +1,510 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %} Projects {% endblock title %}
+{% block bodyclass %} hold-transition sidebar-mini {% endblock bodyclass %}
+
+{% block content %}
+<!-- Content Wrapper. Contains page content -->
+<div class="content-wrapper">
+
+  <!-- Header -->
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2 align-items-center">
+        <div class="col-sm-6">
+          <h1>Projects</h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right mb-0">
+            <li class="breadcrumb-item"><a href="#">Home</a></li>
+            <li class="breadcrumb-item active">Projects</li>
+          </ol>
+        </div>
+      </div>
+      <div class="row g-2">
+        <div class="col-md-4 col-12">
+          <input id="proj-search" type="search" class="form-control" placeholder="Search projects, members, status…">
+        </div>
+        <div class="col-md-8 col-12 text-md-right mt-2 mt-md-0">
+          <button id="btn-new" class="btn btn-primary">
+            <i class="fas fa-plus mr-1"></i> New Project
+          </button>
+          <button id="btn-reset" class="btn btn-outline-secondary ml-2">
+            <i class="fas fa-undo mr-1"></i> Reset Demo Data
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main content -->
+  <section class="content">
+    <div class="card">
+      <div class="card-header d-flex align-items-center">
+        <h3 class="card-title mb-0">Projects</h3>
+        <div class="card-tools ml-auto">
+          <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+            <i class="fas fa-minus"></i>
+          </button>
+          <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="card-body p-0 table-responsive">
+        <table class="table table-striped projects mb-0" id="projects-table">
+          <thead class="thead-light">
+            <tr>
+              <th style="width:4rem">#</th>
+              <th style="min-width:220px" data-sort="name" class="sortable">Project Name <i class="fas fa-sort fa-sm text-muted"></i></th>
+              <th style="min-width:240px">Team Members</th>
+              <th style="min-width:220px" data-sort="progress" class="sortable">Project Progress <i class="fas fa-sort fa-sm text-muted"></i></th>
+              <th style="width: 8%; min-width:120px" class="text-center" data-sort="status" class="sortable">Status <i class="fas fa-sort fa-sm text-muted"></i></th>
+              <th style="width: 190px"></th>
+            </tr>
+          </thead>
+          <tbody id="projects-tbody">
+            <!-- rows injected by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="projectModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <form id="project-form">
+        <div class="modal-header">
+          <h5 class="modal-title" id="projectModalLabel">New Project</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span>&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="proj-id">
+          <div class="form-row">
+            <div class="form-group col-md-8">
+              <label for="proj-name">Project name</label>
+              <input type="text" id="proj-name" class="form-control" required>
+            </div>
+            <div class="form-group col-md-4">
+              <label for="proj-created">Created date</label>
+              <input type="date" id="proj-created" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-8">
+              <label for="proj-members">Members (comma-separated)</label>
+              <input type="text" id="proj-members" class="form-control" placeholder="e.g. Alice,Bob,Charlie">
+            </div>
+            <div class="form-group col-md-4">
+              <label for="proj-status">Status</label>
+              <select id="proj-status" class="form-control">
+                <option value="success">Success</option>
+                <option value="pending">Pending</option>
+                <option value="onhold">On Hold</option>
+                <option value="canceled">Canceled</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row align-items-center">
+            <div class="form-group col-12">
+              <label for="proj-progress">Progress: <span id="proj-progress-label" class="font-weight-bold">0%</span></label>
+              <input type="range" id="proj-progress" class="custom-range" min="0" max="100" step="1" value="0">
+              <div class="progress progress-sm mt-2">
+                <div id="proj-progress-bar" class="progress-bar bg-success" role="progressbar" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="proj-notes">Notes</label>
+            <textarea id="proj-notes" rows="3" class="form-control" placeholder="Optional notes or description…"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save mr-1"></i> Save
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  'use strict';
+
+  // ---------- Config / Utilities ----------
+  const STORAGE_KEY = 'projects.v1';
+  const STATIC_IMG_BASE = "{% static 'dist/img/' %}"; // base path for avatars (resolved by Django)
+  const $tbody = document.getElementById('projects-tbody');
+  const $search = document.getElementById('proj-search');
+  const $table = document.getElementById('projects-table');
+  const $btnNew = document.getElementById('btn-new');
+  const $btnReset = document.getElementById('btn-reset');
+
+  let state = {
+    projects: [],
+    sort: { by: 'name', dir: 'asc' }, // asc | desc
+    filter: ''
+  };
+
+  // small helpers
+  const uuid = () => 'p_' + Math.random().toString(36).slice(2, 10);
+  const esc = (s) => (s || '').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const fmtDate = (iso) => {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      if (isNaN(d)) return iso;
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      const yyyy = d.getFullYear();
+      return `${mm}/${dd}/${yyyy}`;
+    } catch { return iso; }
+  };
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v|0));
+
+  function badgeFor(status) {
+    const map = { success: 'badge-success', pending: 'badge-warning', onhold: 'badge-info', canceled: 'badge-danger' };
+    const label = { success: 'Success', pending: 'Pending', onhold: 'On Hold', canceled: 'Canceled' }[status] || 'Pending';
+    return `<span class="badge ${map[status] || map.pending}">${label}</span>`;
+  }
+
+  function avatarFor(name, i = 0) {
+    const pool = ['avatar.png', 'avatar2.png', 'avatar3.png', 'avatar4.png', 'avatar5.png'];
+    const pick = pool[i % pool.length];
+    return STATIC_IMG_BASE + pick;
+  }
+
+  function membersToArray(val) {
+    if (Array.isArray(val)) return val;
+    return (val || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+  }
+
+  // ---------- Persistence ----------
+  function loadProjects() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch { return null; }
+  }
+
+  function saveProjects() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.projects));
+  }
+
+  function ensureSeedData() {
+    if (state.projects && state.projects.length) return;
+    state.projects = [
+      {
+        id: uuid(),
+        name: 'Group 43',
+        created: '2025-10-01',
+        members: ['Nishan','Anil','Rahul','Manjil', 'Samukta'],
+        progress: 99,
+        status: 'success',
+        notes: 'Dashboard Creation'
+      },
+      {
+        id: uuid(),
+        name: 'Website Revamp',
+        created: '2019-01-01',
+        members: ['Eve','Mallory'],
+        progress: 47,
+        status: 'pending',
+        notes: ''
+      },
+      {
+        id: uuid(),
+        name: 'Marketing Launch',
+        created: '2019-01-01',
+        members: ['Frank','Grace','Heidi'],
+        progress: 77,
+        status: 'success',
+        notes: ''
+      }
+    ];
+    saveProjects();
+  }
+
+  // ---------- Rendering ----------
+  function render() {
+    const q = state.filter.toLowerCase();
+    const by = state.sort.by;
+    const dir = state.sort.dir;
+
+    let rows = [...state.projects];
+
+    // filter
+    if (q) {
+      rows = rows.filter(p => {
+        const hay = [
+          p.name,
+          (p.status || ''),
+          membersToArray(p.members).join(' ')
+        ].join(' ').toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
+    // sort
+    rows.sort((a, b) => {
+      let va, vb;
+      if (by === 'progress') { va = +a.progress || 0; vb = +b.progress || 0; }
+      else if (by === 'status') { va = (a.status || ''); vb = (b.status || ''); }
+      else { va = (a.name || ''); vb = (b.name || ''); }
+      if (va < vb) return dir === 'asc' ? -1 : 1;
+      if (va > vb) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    // build HTML
+    $tbody.innerHTML = rows.map((p, idx) => {
+      const members = membersToArray(p.members);
+      const avatars = `
+        <ul class="list-inline mb-0">
+          ${members.slice(0,6).map((m,i)=>`
+            <li class="list-inline-item" title="${esc(m)}">
+              <img alt="Avatar" class="table-avatar" src="${avatarFor(m,i)}">
+            </li>
+          `).join('')}
+        </ul>`;
+
+      const prog = clamp(p.progress, 0, 100);
+      return `
+        <tr data-id="${p.id}">
+          <td>${idx + 1}</td>
+          <td>
+            <a href="#" class="js-view" title="View project">${esc(p.name)}</a>
+            <br><small>Created ${esc(fmtDate(p.created))}</small>
+          </td>
+          <td>${avatars}</td>
+          <td class="project_progress align-middle">
+            <div class="d-flex align-items-center">
+              <div class="progress progress-sm flex-grow-1 mr-2" title="${prog}%">
+                <div class="progress-bar bg-success" role="progressbar" style="width:${prog}%"></div>
+              </div>
+              <small class="text-nowrap">${prog}%</small>
+            </div>
+            <input type="range" class="custom-range mt-2 js-progress" min="0" max="100" step="1" value="${prog}" aria-label="Progress slider">
+          </td>
+          <td class="project-state text-center align-middle">
+            ${badgeFor(p.status)}
+            <select class="form-control form-control-sm mt-2 js-status" aria-label="Status select">
+              <option value="success"${p.status==='success'?' selected':''}>Success</option>
+              <option value="pending"${p.status==='pending'?' selected':''}>Pending</option>
+              <option value="onhold"${p.status==='onhold'?' selected':''}>On Hold</option>
+              <option value="canceled"${p.status==='canceled'?' selected':''}>Canceled</option>
+            </select>
+          </td>
+          <td class="project-actions text-right align-middle">
+            <button class="btn btn-primary btn-sm js-view"><i class="fas fa-folder"></i> View</button>
+            <button class="btn btn-info btn-sm js-edit"><i class="fas fa-pencil-alt"></i> Edit</button>
+            <button class="btn btn-danger btn-sm js-del"><i class="fas fa-trash"></i> Delete</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // ---------- Modal (Add/Edit) ----------
+  const $modal = document.getElementById('projectModal');
+  const $form  = document.getElementById('project-form');
+  const $id    = document.getElementById('proj-id');
+  const $name  = document.getElementById('proj-name');
+  const $created = document.getElementById('proj-created');
+  const $members = document.getElementById('proj-members');
+  const $status  = document.getElementById('proj-status');
+  const $progress = document.getElementById('proj-progress');
+  const $progressBar = document.getElementById('proj-progress-bar');
+  const $progressLabel = document.getElementById('proj-progress-label');
+  const $notes = document.getElementById('proj-notes');
+  const $modalLabel = document.getElementById('projectModalLabel');
+
+  function openModal(mode = 'new', data = null) {
+    $form.reset();
+    $id.value = '';
+    $modalLabel.textContent = mode === 'edit' ? 'Edit Project' : 'New Project';
+    const today = new Date();
+    const isoToday = today.toISOString().slice(0,10);
+
+    if (mode === 'edit' && data) {
+      $id.value = data.id;
+      $name.value = data.name || '';
+      $created.value = (data.created || isoToday);
+      $members.value = membersToArray(data.members).join(',');
+      $status.value = data.status || 'pending';
+      $progress.value = clamp(data.progress, 0, 100);
+      $progressBar.style.width = $progress.value + '%';
+      $progressLabel.textContent = $progress.value + '%';
+      $notes.value = data.notes || '';
+    } else {
+      $created.value = isoToday;
+      $status.value = 'pending';
+      $progress.value = 0;
+      $progressBar.style.width = '0%';
+      $progressLabel.textContent = '0%';
+    }
+
+    // show modal (Bootstrap)
+    $('#projectModal').modal('show');
+  }
+
+  $progress.addEventListener('input', () => {
+    const v = clamp($progress.value, 0, 100);
+    $progressBar.style.width = v + '%';
+    $progressLabel.textContent = v + '%';
+  });
+
+  $form.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const data = {
+      id: $id.value || uuid(),
+      name: $name.value.trim(),
+      created: $created.value,
+      members: membersToArray($members.value),
+      status: $status.value,
+      progress: clamp($progress.value, 0, 100),
+      notes: $notes.value.trim()
+    };
+
+    if (!data.name) {
+      $name.focus();
+      return;
+    }
+
+    const i = state.projects.findIndex(p => p.id === data.id);
+    if (i === -1) state.projects.push(data);
+    else state.projects[i] = data;
+
+    saveProjects();
+    render();
+    $('#projectModal').modal('hide');
+  });
+
+  // ---------- Events ----------
+  $btnNew.addEventListener('click', () => openModal('new'));
+  $btnReset.addEventListener('click', () => {
+    if (!confirm('Reset to demo data? This will overwrite current local changes.')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    state.projects = [];
+    ensureSeedData();
+    render();
+  });
+
+  $search.addEventListener('input', (e) => {
+    state.filter = e.target.value || '';
+    render();
+  });
+
+  // click handlers for table actions (event delegation)
+  $tbody.addEventListener('click', (e) => {
+    const $btn = e.target.closest('button, a');
+    if (!$btn) return;
+    const $row = e.target.closest('tr[data-id]');
+    if (!$row) return;
+    const id = $row.getAttribute('data-id');
+    const proj = state.projects.find(p => p.id === id);
+    if (!proj) return;
+
+    if ($btn.classList.contains('js-view')) {
+      const info = [
+        `Name: ${proj.name}`,
+        `Created: ${fmtDate(proj.created)}`,
+        `Members: ${membersToArray(proj.members).join(', ') || '-'}`,
+        `Status: ${proj.status}`,
+        `Progress: ${proj.progress}%`,
+        proj.notes ? `Notes: ${proj.notes}` : ''
+      ].filter(Boolean).join('\n');
+      alert(info);
+      e.preventDefault();
+    }
+
+    if ($btn.classList.contains('js-edit')) {
+      openModal('edit', proj);
+      e.preventDefault();
+    }
+
+    if ($btn.classList.contains('js-del')) {
+      if (confirm(`Delete project "${proj.name}"? This cannot be undone.`)) {
+        state.projects = state.projects.filter(p => p.id !== id);
+        saveProjects();
+        render();
+      }
+      e.preventDefault();
+    }
+  });
+
+  // inline progress + status updates
+  $tbody.addEventListener('input', (e) => {
+    const $row = e.target.closest('tr[data-id]');
+    if (!$row) return;
+    const id = $row.getAttribute('data-id');
+    const proj = state.projects.find(p => p.id === id);
+    if (!proj) return;
+
+    if (e.target.classList.contains('js-progress')) {
+      proj.progress = clamp(e.target.value, 0, 100);
+      saveProjects();
+      render(); // re-render to refresh progress bar + percent
+    }
+  });
+
+  $tbody.addEventListener('change', (e) => {
+    const $row = e.target.closest('tr[data-id]');
+    if (!$row) return;
+    const id = $row.getAttribute('data-id');
+    const proj = state.projects.find(p => p.id === id);
+    if (!proj) return;
+
+    if (e.target.classList.contains('js-status')) {
+      proj.status = e.target.value;
+      saveProjects();
+      render();
+    }
+  });
+
+  // sorting
+  $table.querySelectorAll('th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const by = th.getAttribute('data-sort');
+      if (state.sort.by === by) {
+        state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        state.sort.by = by;
+        state.sort.dir = 'asc';
+      }
+      render();
+    });
+  });
+
+  // ---------- Init ----------
+  (function init() {
+    const saved = loadProjects();
+    state.projects = Array.isArray(saved) ? saved : [];
+    ensureSeedData();
+    render();
+  })();
+
+})();
+</script>
+{% endblock extra_scripts %}
