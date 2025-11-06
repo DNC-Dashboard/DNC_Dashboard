@@ -159,12 +159,19 @@ USE_I18N = True
 USE_TZ = True
 
 # -------------------- STATIC FILES ------------------------
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+BASE_DIR = Path(__file__).resolve().parent.parent
 
-STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, 'static'),
-)
+STATIC_URL = '/static/'
+
+STATICFILES_DIRS = [
+    BASE_DIR / "static",  # Django will look here for static files
+]
+
+# For production
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+DEBUG = True
+
 
 # If you decide to enable hashed staticfiles in prod:
 # if not DEBUG:
