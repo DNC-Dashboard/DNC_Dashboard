@@ -73,6 +73,7 @@ INSTALLED_APPS = [
 
     # ---- ADDED: analytics app for GA endpoint ----
     "apps.analytics",
+    "projects",
 ]
 
 # -------------------- MIDDLEWARE --------------------------

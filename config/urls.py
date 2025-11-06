@@ -31,6 +31,7 @@ urlpatterns = [
     path('api/', include('apps.dyn_api.urls')),
     path('api/', include('apps.pages.api_urls')),
     path('charts/', include('apps.charts.urls')),
+    path('projects/', include('projects.urls')), 
 ]
 
 # ---- Serve static files in development ----
