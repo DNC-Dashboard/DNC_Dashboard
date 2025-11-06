@@ -1,0 +1,621 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %} Projects {% endblock title %}
+{% block bodyclass %} hold-transition sidebar-mini {% endblock bodyclass %}
+
+{% block content %}
+<div class="content-wrapper">
+
+  <!-- Header -->
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2 align-items-center">
+        <div class="col-sm-6">
+          <h1>Projects</h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right mb-0">
+            <li class="breadcrumb-item"><a href="#">Home</a></li>
+            <li class="breadcrumb-item active">Projects</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- top actions -->
+      <div class="row g-2">
+        <div class="col-md-4 col-12">
+          <input id="proj-search" type="search" class="form-control" placeholder="Search projects…">
+        </div>
+        <div class="col-md-8 col-12 text-md-right mt-2 mt-md-0">
+          <button id="btn-new" class="btn btn-primary">
+            <i class="fas fa-plus mr-1"></i> New Project
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main content -->
+  <section class="content">
+    <div class="card">
+      <div class="card-header d-flex align-items-center">
+        <h3 class="card-title mb-0">Projects</h3>
+        <div class="card-tools ml-auto">
+          <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+            <i class="fas fa-minus"></i>
+          </button>
+          <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div id="loading-spinner" class="text-center py-5">
+          <i class="fas fa-spinner fa-spin fa-3x text-primary"></i>
+          <p class="mt-3">Loading projects...</p>
+        </div>
+        <div id="projects-grid" class="row" style="display:none;"></div>
+        <div id="error-message" class="alert alert-danger" style="display:none;"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Modal: Add/Edit -->
+<div class="modal fade" id="projectModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <form id="project-form">
+        <div class="modal-header">
+          <h5 class="modal-title" id="projectModalLabel">New Project</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span>&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="proj-id">
+
+          <div class="form-group">
+            <label for="proj-name">Project Name <span class="text-danger">*</span></label>
+            <input type="text" id="proj-name" class="form-control" required placeholder="Enter project name">
+          </div>
+
+          <div class="form-group">
+            <label for="proj-desc">Description</label>
+            <textarea id="proj-desc" rows="3" class="form-control" placeholder="Brief description of the project"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="proj-created">Start Date <span class="text-danger">*</span></label>
+            <input type="date" id="proj-created" class="form-control" required>
+          </div>
+
+          <hr>
+
+          <!-- Staff Assignment Section -->
+          <div class="form-group">
+            <label for="staff-select">Assign Staff Members</label>
+            <div class="input-group">
+              <select id="staff-select" class="form-control">
+                <option value="">-- Select a staff member --</option>
+              </select>
+              <div class="input-group-append">
+                <button type="button" id="btn-add-staff" class="btn btn-primary">
+                  <i class="fas fa-plus"></i> Add
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Assigned Staff</label>
+            <div id="assigned-staff-list" class="border rounded p-2" style="min-height: 100px; max-height: 200px; overflow-y: auto; background: #f8f9fa;">
+              <p class="text-muted text-center mb-0 py-3" id="no-staff-msg">No staff members assigned yet</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-project">
+            <i class="fas fa-save mr-1"></i> Save
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .project-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin-bottom: 24px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-left: 4px solid #007bff;
+  }
+
+  .project-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+
+  .project-card-header {
+    margin-bottom: 12px;
+  }
+
+  .project-card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+  }
+
+  .project-card-date {
+    font-size: 0.875rem;
+    color: #6c757d;
+  }
+
+  .project-card-desc {
+    color: #555;
+    margin-bottom: 16px;
+    min-height: 40px;
+    font-size: 0.9rem;
+  }
+
+  .project-card-cost {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .project-cost-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-bottom: 4px;
+  }
+
+  .project-cost-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #28a745;
+  }
+
+  .project-team-section {
+    margin-bottom: 16px;
+  }
+
+  .project-team-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .project-team-members {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .team-member-badge {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.813rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .team-member-badge i {
+    font-size: 0.75rem;
+  }
+
+  .project-card-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .project-card-actions .btn {
+    flex: 1;
+  }
+
+  .staff-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #fff;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    border: 1px solid #dee2e6;
+  }
+
+  .staff-item-name {
+    font-size: 0.9rem;
+    color: #333;
+  }
+
+  .staff-item-role {
+    font-size: 0.813rem;
+    color: #6c757d;
+    margin-left: 8px;
+  }
+
+  .staff-item .btn-remove {
+    padding: 2px 8px;
+    font-size: 0.813rem;
+  }
+</style>
+{% endblock content %}
+
+{% block extra_scripts %}
+<script>
+(function() {
+  'use strict';
+
+  const $grid   = document.getElementById('projects-grid');
+  const $search = document.getElementById('proj-search');
+  const $btnNew = document.getElementById('btn-new');
+  const $loadingSpinner = document.getElementById('loading-spinner');
+  const $errorMessage = document.getElementById('error-message');
+
+  let projects = [];
+  let staffMembers = [];
+  let userRole = '';
+  let isSuperuser = false;
+
+  // Get CSRF token
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  const csrftoken = getCookie('csrftoken');
+
+  // Utility functions
+  const esc = (s)=> (s||'').toString().replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const fmtDate = iso => {
+    const d = new Date(iso);
+    return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
+  };
+  const fmtCost = cost => {
+    return '$' + parseFloat(cost || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  };
+
+  function getStaffById(id) {
+    return staffMembers.find(s => s.id === parseInt(id));
+  }
+
+  function showError(message) {
+    $errorMessage.textContent = message;
+    $errorMessage.style.display = 'block';
+    $loadingSpinner.style.display = 'none';
+    $grid.style.display = 'none';
+  }
+
+  function hideError() {
+    $errorMessage.style.display = 'none';
+  }
+
+  // Load projects from backend
+  async function loadProjects() {
+    try {
+      $loadingSpinner.style.display = 'block';
+      $grid.style.display = 'none';
+      hideError();
+
+      const response = await fetch('{% url "projects:api_get_projects" %}');
+      if (!response.ok) throw new Error('Failed to load projects');
+
+      const data = await response.json();
+      projects = data.projects;
+      userRole = data.user_role;
+      isSuperuser = data.is_superuser;
+
+      // Show/hide New Project button based on role
+      if (userRole === 'TEAM_LEAD' || isSuperuser) {
+        $btnNew.style.display = '';
+      } else {
+        $btnNew.style.display = 'none';
+      }
+
+      $loadingSpinner.style.display = 'none';
+      $grid.style.display = 'flex';
+      render();
+    } catch (error) {
+      showError('Error loading projects: ' + error.message);
+    }
+  }
+
+  // Load staff members from backend
+  async function loadStaffMembers() {
+    try {
+      const response = await fetch('{% url "projects:api_get_staff" %}');
+      if (!response.ok) throw new Error('Failed to load staff members');
+
+      const data = await response.json();
+      staffMembers = data.staff;
+      populateStaffDropdown();
+    } catch (error) {
+      console.error('Error loading staff:', error);
+    }
+  }
+
+  function render() {
+    const q = ($search.value || '').toLowerCase();
+    const rows = projects.filter(p=>[p.name,p.description].join(' ').toLowerCase().includes(q));
+
+    if (rows.length === 0) {
+      $grid.innerHTML = '<div class="col-12"><p class="text-center text-muted py-5">No projects found</p></div>';
+      return;
+    }
+
+    $grid.innerHTML = rows.map(p=>{
+      const teamHtml = p.staff && p.staff.length > 0
+        ? p.staff.map(staffId => {
+            const staff = getStaffById(staffId);
+            return staff ? `<span class="team-member-badge"><i class="fas fa-user"></i> ${esc(staff.name)}</span>` : '';
+          }).join('')
+        : '<span class="text-muted" style="font-size: 0.875rem;">No staff assigned</span>';
+
+      // Show edit/delete buttons only if user can edit (team lead who created it or superuser)
+      const canEdit = (p.can_edit !== undefined && p.can_edit) || isSuperuser;
+      const actionsHtml = canEdit ? `
+        <div class="project-card-actions">
+          <button class="btn btn-sm btn-primary js-edit">
+            <i class="fas fa-edit mr-1"></i> Edit
+          </button>
+          <button class="btn btn-sm btn-danger js-del">
+            <i class="fas fa-trash mr-1"></i> Delete
+          </button>
+        </div>
+      ` : '';
+
+      return `
+      <div class="col-lg-6 col-md-6 col-12">
+        <div class="project-card" data-id="${p.id}">
+          <div class="project-card-header">
+            <div class="project-card-title">
+              <a href="/projects/${p.id}/tasks/" class="text-primary">${esc(p.name)}</a>
+            </div>
+            <div class="project-card-date">
+              <i class="fas fa-calendar-alt mr-1"></i>
+              Started ${esc(fmtDate(p.created))}
+            </div>
+          </div>
+
+          <div class="project-card-desc">${esc(p.description)}</div>
+
+          <div class="project-card-cost">
+            <div class="project-cost-label">Total Cost</div>
+            <div class="project-cost-value">${fmtCost(p.cost)}</div>
+          </div>
+
+          <div class="project-team-section">
+            <div class="project-team-label">Team Members</div>
+            <div class="project-team-members">${teamHtml}</div>
+          </div>
+
+          ${actionsHtml}
+        </div>
+      </div>
+    `;
+    }).join('');
+  }
+
+  // Modal logic
+  const $modal = document.getElementById('projectModal');
+  const $form  = document.getElementById('project-form');
+  const $id    = document.getElementById('proj-id');
+  const $name  = document.getElementById('proj-name');
+  const $created = document.getElementById('proj-created');
+  const $desc = document.getElementById('proj-desc');
+  const $modalLabel = document.getElementById('projectModalLabel');
+  const $staffSelect = document.getElementById('staff-select');
+  const $btnAddStaff = document.getElementById('btn-add-staff');
+  const $assignedStaffList = document.getElementById('assigned-staff-list');
+  const $noStaffMsg = document.getElementById('no-staff-msg');
+  const $btnSaveProject = document.getElementById('btn-save-project');
+
+  let currentAssignedStaff = [];
+
+  // Populate staff dropdown
+  function populateStaffDropdown() {
+    const options = staffMembers.map(s =>
+      `<option value="${s.id}">${esc(s.name)} - ${esc(s.role)}</option>`
+    ).join('');
+    $staffSelect.innerHTML = '<option value="">-- Select a staff member --</option>' + options;
+  }
+
+  function renderAssignedStaff() {
+    if (currentAssignedStaff.length === 0) {
+      $noStaffMsg.style.display = 'block';
+      $assignedStaffList.querySelectorAll('.staff-item').forEach(el => el.remove());
+      return;
+    }
+
+    $noStaffMsg.style.display = 'none';
+    const html = currentAssignedStaff.map(staffId => {
+      const staff = getStaffById(staffId);
+      if (!staff) return '';
+      return `
+        <div class="staff-item" data-staff-id="${staff.id}">
+          <div>
+            <span class="staff-item-name">${esc(staff.name)}</span>
+            <span class="staff-item-role">(${esc(staff.role)})</span>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-danger btn-remove js-remove-staff">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    // Remove existing staff items
+    $assignedStaffList.querySelectorAll('.staff-item').forEach(el => el.remove());
+    $assignedStaffList.insertAdjacentHTML('beforeend', html);
+  }
+
+  $btnAddStaff.addEventListener('click', () => {
+    const selectedStaffId = parseInt($staffSelect.value);
+    if (!selectedStaffId) {
+      alert('Please select a staff member to add');
+      return;
+    }
+    if (currentAssignedStaff.includes(selectedStaffId)) {
+      alert('This staff member is already assigned to the project');
+      return;
+    }
+    currentAssignedStaff.push(selectedStaffId);
+    renderAssignedStaff();
+    $staffSelect.value = '';
+  });
+
+  $assignedStaffList.addEventListener('click', (e) => {
+    const btn = e.target.closest('.js-remove-staff');
+    if (!btn) return;
+    const staffItem = btn.closest('.staff-item');
+    const staffId = parseInt(staffItem.dataset.staffId);
+    currentAssignedStaff = currentAssignedStaff.filter(id => id !== staffId);
+    renderAssignedStaff();
+  });
+
+  function openModal(mode='new', data=null){
+      $form.reset();
+      $id.value = ''; // ← CLEAR the hidden ID field
+      const today = new Date().toISOString().slice(0,10);
+      $created.value = today;
+      $modalLabel.textContent = mode==='edit'?'Edit Project':'New Project';
+      currentAssignedStaff = [];
+
+      if(mode==='edit' && data){
+          $id.value = data.id;
+          $name.value = data.name;
+          $created.value = data.created;
+          $desc.value = data.description;
+          currentAssignedStaff = data.staff ? [...data.staff] : [];
+      }
+
+      renderAssignedStaff();
+      $('#projectModal').modal('show');
+  }
+
+
+  $btnNew.addEventListener('click',()=>openModal());
+
+  $form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const projectData = {
+      name: $name.value.trim(),
+      created: $created.value,
+      description: $desc.value.trim(),
+      staff: currentAssignedStaff
+    };
+
+    const projectId = $id.value;
+    const isEdit = projectId !== '';
+
+    // Disable submit button
+    $btnSaveProject.disabled = true;
+    $btnSaveProject.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+
+    try {
+      const url = isEdit
+        ? `{% url 'projects:api_update_project' 0 %}`.replace('0', projectId)
+        : '{% url "projects:api_create_project" %}';
+
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify(projectData)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save project');
+      }
+
+      const result = await response.json();
+
+      // Reload projects
+      await loadProjects();
+
+      $('#projectModal').modal('hide');
+
+      // Show success message
+      alert(isEdit ? 'Project updated successfully!' : 'Project created successfully!');
+
+    } catch (error) {
+      alert('Error: ' + error.message);
+    } finally {
+      $btnSaveProject.disabled = false;
+      $btnSaveProject.innerHTML = '<i class="fas fa-save mr-1"></i> Save';
+    }
+  });
+
+  $search.addEventListener('input',()=>render());
+
+  $grid.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button'); if(!btn) return;
+    const card = e.target.closest('.project-card'); if(!card) return;
+    const proj = projects.find(p=>p.id===parseInt(card.dataset.id)); if(!proj) return;
+
+    if(btn.classList.contains('js-edit')) {
+      openModal('edit', proj);
+      e.preventDefault();
+    }
+
+    if(btn.classList.contains('js-del')) {
+      if(confirm(`Delete project "${proj.name}"?`)){
+        try {
+          const response = await fetch(`{% url 'projects:api_delete_project' 0 %}`.replace('0', proj.id), {
+            method: 'DELETE',
+            headers: {
+              'X-CSRFToken': csrftoken
+            }
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete project');
+          }
+
+          await loadProjects();
+          alert('Project deleted successfully!');
+        } catch (error) {
+          alert('Error: ' + error.message);
+        }
+      }
+      e.preventDefault();
+    }
+  });
+
+  // Initialize
+  loadStaffMembers();
+  loadProjects();
+})();
+</script>
+{% endblock extra_scripts %}

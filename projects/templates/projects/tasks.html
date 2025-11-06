@@ -1,0 +1,524 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}Tasks - {{ project.name }}{% endblock title %}
+{% block bodyclass %} hold-transition sidebar-mini {% endblock bodyclass %}
+
+{% block content %}
+<div class="content-wrapper">
+
+  <!-- Header -->
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2 align-items-center">
+        <div class="col-sm-6">
+          <h1>Tasks for <span class="text-primary">{{ project.name }}</span></h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'projects:projects' %}">Projects</a></li>
+            <li class="breadcrumb-item active">Tasks</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Top Actions -->
+      <div class="row g-2 mb-3">
+        <div class="col-md-6 col-12">
+          <h5>Total Project Cost: <span id="total-cost" class="text-success">$0.00</span></h5>
+        </div>
+        <div class="col-md-6 col-12 text-md-right mt-2 mt-md-0">
+          {% if request.user.profile.role == 'TEAM_LEAD' or request.user.is_superuser %}
+          <button id="btn-new-task" class="btn btn-primary">
+            <i class="fas fa-plus mr-1"></i> New Task
+          </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tasks Table -->
+  <section class="content">
+    <div class="card">
+      <div class="card-body p-0">
+        <div id="loading-spinner" class="text-center py-5">
+          <i class="fas fa-spinner fa-spin fa-3x text-primary"></i>
+          <p class="mt-3">Loading tasks...</p>
+        </div>
+        <div id="tasks-table-container" style="display:none;">
+          <table class="table table-striped table-hover mb-0">
+            <thead class="thead-light">
+              <tr>
+                <th style="width:40px;">Done</th>
+                <th>Title</th>
+                <th>Assigned To</th>
+                <th style="width:100px;">Hours</th>
+                <th style="width:120px;">Cost</th>
+                <th style="width:140px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tasks-tbody"></tbody>
+          </table>
+        </div>
+        <div id="error-message" class="alert alert-danger m-3" style="display:none;"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Modal: Add/Edit Task -->
+<div class="modal fade" id="taskModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-md modal-dialog-scrollable">
+    <div class="modal-content">
+      <form id="task-form">
+        <div class="modal-header">
+          <h5 class="modal-title" id="taskModalLabel">New Task</h5>
+          <button type="button" class="close" data-dismiss="modal">
+            <span>&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="task-id">
+
+          <div class="form-group">
+            <label for="task-title">Task Title <span class="text-danger">*</span></label>
+            <input type="text" id="task-title" class="form-control" required placeholder="Enter task title">
+          </div>
+
+          <div class="form-group">
+            <label for="task-desc">Description</label>
+            <textarea id="task-desc" rows="3" class="form-control" placeholder="Task description (optional)"></textarea>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="task-hours">Hours Taken <span class="text-danger">*</span></label>
+                <input type="number" step="0.01" id="task-hours" class="form-control" required placeholder="0.00">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="task-cost">Cost ($) <span class="text-danger">*</span></label>
+                <input type="number" step="0.01" id="task-cost" class="form-control" required placeholder="0.00">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="task-assigned">Assign To</label>
+            <select id="task-assigned" class="form-control">
+              <option value="">-- Unassigned --</option>
+            </select>
+          </div>
+
+          <div class="form-check">
+            <input type="checkbox" id="task-completed" class="form-check-input">
+            <label class="form-check-label" for="task-completed">Completed</label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-task">
+            <i class="fas fa-save mr-1"></i> Save Task
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .task-description-row {
+    background-color: #f8f9fa;
+    border-left: 4px solid #007bff;
+  }
+
+  .task-description-content {
+    padding: 15px 20px;
+    color: #555;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .btn-group-actions {
+    display: flex;
+    gap: 4px;
+  }
+
+  .btn-action {
+    padding: 4px 8px;
+    font-size: 0.813rem;
+  }
+</style>
+
+{% endblock content %}
+
+{% block extra_scripts %}
+<script>
+(function() {
+  'use strict';
+
+  const projectId = {{ project.id }};
+  const $tbody = document.getElementById('tasks-tbody');
+  const $loading = document.getElementById('loading-spinner');
+  const $tableContainer = document.getElementById('tasks-table-container');
+  const $error = document.getElementById('error-message');
+  const $totalCost = document.getElementById('total-cost');
+
+  const $modal = $('#taskModal');
+  const $form = document.getElementById('task-form');
+  const $taskId = document.getElementById('task-id');
+  const $taskTitle = document.getElementById('task-title');
+  const $taskDesc = document.getElementById('task-desc');
+  const $taskHours = document.getElementById('task-hours');
+  const $taskCost = document.getElementById('task-cost');
+  const $taskAssigned = document.getElementById('task-assigned');
+  const $taskCompleted = document.getElementById('task-completed');
+  const $btnSave = document.getElementById('btn-save-task');
+  const $btnNew = document.getElementById('btn-new-task');
+  const $modalLabel = document.getElementById('taskModalLabel');
+
+  let tasks = [];
+  let staffMembers = [];
+  let userRole = '';
+  let expandedRows = new Set();
+
+  // CSRF
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  const csrftoken = getCookie('csrftoken');
+
+  // Utility functions
+  const esc = (s) => (s || '').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const fmtCost = cost => '$' + parseFloat(cost || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const fmtHours = hours => parseFloat(hours || 0).toFixed(2) + ' hrs';
+
+  function showError(msg) {
+    $error.textContent = msg;
+    $error.style.display = 'block';
+    $tableContainer.style.display = 'none';
+    $loading.style.display = 'none';
+  }
+
+  function hideError() {
+    $error.style.display = 'none';
+  }
+
+  async function getStaffName(userId) {
+  if (!userId) return '-';
+
+  try {
+    const resp = await fetch(`/projects/api/staff/${userId}/`);
+    if (!resp.ok) return '-';
+    const data = await resp.json();
+    return data.name;
+  } catch (err) {
+    console.error('Error fetching staff name:', err);
+    return '-';
+  }
+}
+
+
+  function getStaffById(id) {
+    return staffMembers.find(s => s.id === parseInt(id));
+  }
+
+  async function loadStaff() {
+    try {
+      const resp = await fetch('{% url "projects:api_get_staff" %}');
+      if (!resp.ok) throw new Error('Failed to load staff members');
+      const data = await resp.json();
+      staffMembers = data.staff;
+      userRole = data.can_assign ? 'TEAM_LEAD' : 'STAFF';
+      populateStaffDropdown();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  function populateStaffDropdown() {
+    const options = staffMembers.map(s => `<option value="${s.id}">${esc(s.name)} (${esc(s.role)})</option>`).join('');
+    $taskAssigned.innerHTML = '<option value="">-- Unassigned --</option>' + options;
+  }
+
+  async function loadTasks() {
+    try {
+      hideError();
+      $loading.style.display = 'block';
+      $tableContainer.style.display = 'none';
+
+      const resp = await fetch(`/projects/api/projects/${projectId}/tasks/`);
+      if (!resp.ok) throw new Error('Failed to load tasks');
+      const data = await resp.json();
+      tasks = data.tasks;
+      userRole = data.user_role;
+
+      $loading.style.display = 'none';
+      $tableContainer.style.display = 'block';
+
+      renderTasks();
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
+  async function renderTasks() {
+  if (!tasks.length) {
+    $tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No tasks yet</td></tr>';
+    $totalCost.textContent = fmtCost(0);
+    return;
+  }
+
+  let total = 0;
+  const canEdit = userRole === 'TEAM_LEAD' || userRole === 'SUPERUSER';
+
+  // Build rows with async staff name fetching
+  const rowPromises = tasks.map(async (t) => {
+    total += parseFloat(t.cost || 0);
+    const disabled = (userRole === 'STAFF' && !t.assigned_to) ? 'disabled' : '';
+    const checked = t.completed ? 'checked' : '';
+    const isExpanded = expandedRows.has(t.id);
+    const hasDescription = t.description && t.description.trim() !== '';
+
+    // Fetch staff name if assigned
+    const assignedName = t.assigned_to ? await getStaffName(t.assigned_to) : '-';
+
+    const actionButtons = canEdit ? `
+      <div class="btn-group-actions">
+        <button class="btn btn-sm btn-outline-primary btn-action js-toggle-desc" title="View Description" ${!hasDescription ? 'disabled' : ''}>
+          <i class="fas fa-chevron-${isExpanded ? 'up' : 'down'}"></i>
+        </button>
+        <button class="btn btn-sm btn-primary btn-action js-edit-task" title="Edit">
+          <i class="fas fa-edit"></i>
+        </button>
+        <button class="btn btn-sm btn-danger btn-action js-delete-task" title="Delete">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    ` : `
+      <button class="btn btn-sm btn-outline-primary btn-action js-toggle-desc" title="View Description" ${!hasDescription ? 'disabled' : ''}>
+        <i class="fas fa-chevron-${isExpanded ? 'up' : 'down'}"></i>
+      </button>
+    `;
+
+    let html = `
+      <tr data-id="${t.id}">
+        <td><input type="checkbox" class="task-completed" ${checked} ${disabled}></td>
+        <td>${esc(t.title)}</td>
+        <td>${esc(assignedName)}</td>
+        <td>${fmtHours(t.time_taken)}</td>
+        <td>${fmtCost(t.cost)}</td>
+        <td>${actionButtons}</td>
+      </tr>
+    `;
+
+    if (hasDescription && isExpanded) {
+      html += `
+        <tr class="task-description-row" data-desc-for="${t.id}">
+          <td colspan="6">
+            <div class="task-description-content">
+              <strong>Description:</strong><br>
+              ${esc(t.description)}
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    return html;
+  });
+
+  const rows = await Promise.all(rowPromises);
+  $tbody.innerHTML = rows.join('');
+  $totalCost.textContent = fmtCost(total);
+}
+
+  // Open modal for new/edit task
+  function openModal(mode = 'new', task = null) {
+    $form.reset();
+    $taskId.value = '';
+    $taskCompleted.checked = false;
+    $modalLabel.textContent = mode === 'edit' ? 'Edit Task' : 'New Task';
+
+    if (mode === 'edit' && task) {
+      $taskId.value = task.id;
+      $taskTitle.value = task.title;
+      $taskDesc.value = task.description || '';
+      $taskHours.value = task.time_taken || 0;
+      $taskCost.value = task.cost || 0;
+      $taskAssigned.value = task.assigned_to || '';
+      $taskCompleted.checked = task.completed || false;
+    }
+
+    $modal.modal('show');
+  }
+
+  $btnNew?.addEventListener('click', () => openModal());
+
+  // Form submit (create/update)
+  $form.addEventListener('submit', async e => {
+    e.preventDefault();
+
+    const taskId = $taskId.value;
+    const isEdit = taskId !== '';
+
+    const data = {
+      title: $taskTitle.value.trim(),
+      description: $taskDesc.value.trim(),
+      time_taken: parseFloat($taskHours.value) || 0,
+      cost: parseFloat($taskCost.value) || 0,
+      assigned_to: $taskAssigned.value || null,
+      completed: $taskCompleted.checked
+    };
+
+    $btnSave.disabled = true;
+    $btnSave.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+
+    try {
+      const url = isEdit
+        ? `/projects/api/projects/${projectId}/tasks/${taskId}/update/`
+        : `/projects/api/projects/${projectId}/tasks/create/`;
+
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const resp = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!resp.ok) {
+        const error = await resp.json();
+        throw new Error(error.error || `Failed to ${isEdit ? 'update' : 'create'} task`);
+      }
+
+      const result = await resp.json();
+
+      if (isEdit) {
+        const idx = tasks.findIndex(t => t.id == taskId);
+        if (idx !== -1) tasks[idx] = result.task;
+      } else {
+        tasks.push(result.task);
+      }
+
+      renderTasks();
+      $modal.modal('hide');
+      alert(isEdit ? 'Task updated successfully!' : 'Task created successfully!');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      $btnSave.disabled = false;
+      $btnSave.innerHTML = '<i class="fas fa-save mr-1"></i> Save Task';
+    }
+  });
+
+  // Toggle completed checkbox
+  $tbody.addEventListener('change', async e => {
+    const cb = e.target.closest('.task-completed');
+    if (!cb) return;
+    const tr = cb.closest('tr');
+    const taskId = tr.dataset.id;
+    const completed = cb.checked;
+
+    try {
+      const url = `/projects/api/projects/${projectId}/tasks/${taskId}/update/`;
+      const resp = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({completed})
+      });
+
+      if (!resp.ok) throw new Error('Failed to update task');
+
+      const task = tasks.find(t => t.id == taskId);
+      if (task) task.completed = completed;
+    } catch (err) {
+      alert(err.message);
+      cb.checked = !completed; // revert
+    }
+  });
+
+  // Handle action buttons
+  $tbody.addEventListener('click', async e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+
+    const tr = btn.closest('tr');
+    const taskId = parseInt(tr.dataset.id);
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    // Toggle description
+    if (btn.classList.contains('js-toggle-desc')) {
+      if (expandedRows.has(taskId)) {
+        expandedRows.delete(taskId);
+      } else {
+        expandedRows.add(taskId);
+      }
+      renderTasks();
+      e.preventDefault();
+    }
+
+    // Edit task
+    if (btn.classList.contains('js-edit-task')) {
+      openModal('edit', task);
+      e.preventDefault();
+    }
+
+    // Delete task
+    if (btn.classList.contains('js-delete-task')) {
+      if (!confirm(`Delete task "${task.title}"?`)) return;
+
+      try {
+        const url = `/projects/api/projects/${projectId}/tasks/${taskId}/delete/`;
+        const resp = await fetch(url, {
+          method: 'DELETE',
+          headers: {
+            'X-CSRFToken': csrftoken
+          }
+        });
+
+        if (!resp.ok) {
+          const error = await resp.json();
+          throw new Error(error.error || 'Failed to delete task');
+        }
+
+        tasks = tasks.filter(t => t.id !== taskId);
+        expandedRows.delete(taskId);
+        renderTasks();
+        alert('Task deleted successfully!');
+      } catch (err) {
+        alert(err.message);
+      }
+      e.preventDefault();
+    }
+  });
+
+  // Initialize
+  loadStaff();
+  loadTasks();
+
+})();
+</script>
+{% endblock extra_scripts %}

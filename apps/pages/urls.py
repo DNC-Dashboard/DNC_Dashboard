@@ -8,7 +8,6 @@ urlpatterns = [
     path('campaigns/', views.campaigns, name='campaigns'),
     path('profile/', views.profile, name='profile'),   # ✅ final fixed route
     path('configuration/', views.configuration, name='configuration'),
-    path('projects/', views.projects, name='projects'),
     path('assets/', views.assets, name='assets'),
 
 path('register/', views.register, name='register'),

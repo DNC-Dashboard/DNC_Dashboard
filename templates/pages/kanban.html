@@ -1,69 +1,142 @@
 {% extends 'layouts/base.html' %}
 {% load static %}
-{% block title %} Kanban Board {% endblock title %}
+
+{% block title %} Task Management Dashboard {% endblock title %}
 
 {% block extrastyle %}
 <link rel="stylesheet" href="{% static 'plugins/ekko-lightbox/ekko-lightbox.css' %}">
 <style>
-  .kanban .kanban-dropzone { min-height: 24px; padding-bottom: 2px; }
-  .kanban .kanban-item.dragging { opacity: .5; }
-  .kanban .drop-hover { outline: 2px dashed rgba(0,0,0,.2); outline-offset: 4px; }
-  .card-tools .btn-tool { cursor: pointer; }
+  /* General tweaks */
+  .content-header .top-links a { color: inherit; margin-right: 14px; white-space: nowrap; }
+  .content-header .top-links .divider { opacity:.35; margin: 0 6px; }
+  .small-box { cursor: pointer; }
+  .small-box .inner h3 { font-weight: 700; }
+  .table-dashboard th, .table-dashboard td { vertical-align: middle; }
+  .table-dashboard .task-title { font-weight: 600; }
+  .table-dashboard .badge { font-weight: 600; }
+  .kpi-active { outline: 2px dashed rgba(0,0,0,.25); outline-offset: 3px; }
+  .search-wrap { min-width: 220px; }
+  .recent-activity { max-height: 520px; overflow:auto; }
+  .recent-activity li + li { border-top: 1px dashed rgba(0,0,0,.08); }
 </style>
 {% endblock extrastyle %}
 
 {% block bodyclass %} hold-transition sidebar-mini {% endblock bodyclass %}
 
 {% block content %}
-<div class="content-wrapper kanban">
+<div class="content-wrapper">
+
+  <!-- Header / Top bar -->
   <section class="content-header">
     <div class="container-fluid">
       <div class="row align-items-center">
-        <div class="col-sm-6">
-          <h1>Kanban Board</h1>
+        <div class="col-md-7 col-12">
+          <h1 class="mb-1">Dashboard</h1>
+          <div class="top-links text-sm text-muted d-flex align-items-center flex-wrap">
+            <a href="#" class="font-weight-bold">
+              <img src="DNC_Dashboard/logo.png" alt="Logo" width="40" style="vertical-align: middle; border-radius: 5px;">
+            </a>
+            <span class="divider">|</span>
+            <a href="#">Projects</a>
+            <span class="divider">|</span>
+            <a href="#">Tasks</a>
+            <span class="divider">|</span>
+            <div class="search-wrap input-group input-group-sm" style="width: 260px;">
+              <input id="searchInput" type="text" class="form-control" placeholder="Search">
+              <div class="input-group-append">
+                <button id="btnSearch" class="btn btn-default"><i class="fas fa-search"></i></button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="col-sm-6 d-none d-sm-flex justify-content-end">
+        <div class="col-md-5 col-12 mt-2 mt-md-0 d-flex justify-content-md-end">
           <button id="btn-add-task" class="btn btn-primary">
-            <i class="fas fa-plus mr-1"></i> Add Task
+            <i class="fas fa-plus mr-1"></i> New Task
           </button>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="content pb-3">
-    <div class="container-fluid h-100">
-
-      <!-- Backlog -->
-     
-
-      <!-- To Do -->
-      <div class="card card-row card-primary" data-status="todo">
-        <div class="card-header">
-          <h3 class="card-title">To Do</h3>
+  <!-- KPI Row -->
+  <section class="content pt-0">
+    <div class="container-fluid">
+      <div class="row mb-3">
+        <div class="col-md-2 col-6">
+          <div class="small-box bg-info" data-kpi="all" title="Show all tasks">
+            <div class="inner"><h3 id="kpi-all">0</h3><p>All Tasks</p></div>
+            <div class="icon"><i class="fas fa-list"></i></div>
+          </div>
         </div>
-        <div class="card-body kanban-dropzone" data-dropzone="todo">
-          <!-- items render here -->
+        <div class="col-md-2 col-6">
+          <div class="small-box bg-warning" data-kpi="due-today" title="Tasks due today">
+            <div class="inner"><h3 id="kpi-due-today">0</h3><p>Due Today</p></div>
+            <div class="icon"><i class="fas fa-calendar-day"></i></div>
+          </div>
+        </div>
+        <div class="col-md-2 col-6">
+          <div class="small-box bg-danger" data-kpi="overdue" title="Tasks past due (not done)">
+            <div class="inner"><h3 id="kpi-overdue">0</h3><p>Overdue</p></div>
+            <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
+          </div>
+        </div>
+        <div class="col-md-2 col-6">
+          <div class="small-box bg-primary" data-kpi="inprogress" title="Tasks in progress">
+            <div class="inner"><h3 id="kpi-inprogress">0</h3><p>In Progress</p></div>
+            <div class="icon"><i class="fas fa-spinner"></i></div>
+          </div>
+        </div>
+        <div class="col-md-2 col-6">
+          <div class="small-box bg-success" data-kpi="done" title="Completed tasks">
+            <div class="inner"><h3 id="kpi-done">0</h3><p>Completed</p></div>
+            <div class="icon"><i class="fas fa-check-circle"></i></div>
+          </div>
         </div>
       </div>
 
-      <!-- In Progress -->
-      <div class="card card-row card-default" data-status="inprogress">
-        <div class="card-header bg-info">
-          <h3 class="card-title">In Progress</h3>
+      <!-- Main two-column layout -->
+      <div class="row">
+        <!-- Left: My Tasks table -->
+        <div class="col-lg-8">
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h3 class="card-title mb-0">My Tasks (by due date)</h3>
+              <a id="viewAllLink" href="#" class="text-sm">[ View all ]</a>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0 table-dashboard">
+                  <thead class="thead-light">
+                    <tr>
+                      <th style="width:48px;">Task</th>
+                      <th>Project</th>
+                      <th style="width:120px;">Due</th>
+                      <th style="width:140px;">Status</th>
+                      <th style="width:110px;">Priority</th>
+                      <th style="width:56px;"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="tasksTbody">
+                    <!-- rows injected by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="card-body kanban-dropzone" data-dropzone="inprogress">
-          <!-- items render here -->
-        </div>
-      </div>
 
-      <!-- Done -->
-      <div class="card card-row card-success" data-status="done">
-        <div class="card-header">
-          <h3 class="card-title">Done</h3>
-        </div>
-        <div class="card-body kanban-dropzone" data-dropzone="done">
-          <!-- items render here -->
+        <!-- Right: Recent Activity -->
+        <div class="col-lg-4">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title mb-0">Recent Activity</h3>
+            </div>
+            <div class="card-body">
+              <ul id="activityList" class="list-unstyled recent-activity mb-0">
+                <!-- activity items injected by JS -->
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -92,12 +165,27 @@
           <textarea id="taskDesc" class="form-control" rows="3"></textarea>
         </div>
         <div class="form-group">
+          <label for="taskProject">Project (optional)</label>
+          <input type="text" id="taskProject" class="form-control" maxlength="80">
+        </div>
+        <div class="form-group">
+          <label for="taskDue">Due date (optional)</label>
+          <input type="date" id="taskDue" class="form-control">
+        </div>
+        <div class="form-group">
           <label for="taskStatus">Status</label>
           <select id="taskStatus" class="form-control">
-            <!-- <option value="backlog">Backlog</option> -->
             <option value="todo">To Do</option>
             <option value="inprogress">In Progress</option>
             <option value="done">Done</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="taskPriority">Priority</label>
+          <select id="taskPriority" class="form-control">
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
           </select>
         </div>
       </div>
@@ -119,15 +207,19 @@
 
 <script>
 /**
- * Kanban backed by Django REST API
- *   GET/POST/PATCH/DELETE   /api/tasks/
- * Auth: Session (requires login). CSRF header required for write ops.
+ * Dashboard (AdminLTE + Django)
+ * API: /api/tasks/ (GET, POST, PATCH, DELETE)
+ * Optional: /api/activity/ (GET) -> [{id, text, created_at}]
+ * Task fields: id, title, desc?, status, order?, project?, created_at?, due_date? (or 'due'), priority?
  */
 (function () {
-  const API = "/api/tasks/";   // because we included apps.pages.api_urls at /api/
+  const API = "/api/tasks/";
+  const ACTIVITY_API = "/api/activity/"; // optional; falls back to task updates if unavailable
+
   let tasks = [];
-  let dragId = null;
-  let chart;
+  let activities = [];
+  let currentFilter = null; // null | 'all' | 'due-today' | 'overdue' | 'inprogress' | 'done'
+  let searchTerm = "";
 
   // ---- CSRF ----
   function getCookie(name) {
@@ -172,143 +264,234 @@
     if (!res.ok && res.status !== 204) throw new Error(`DELETE ${API}${id}/ -> ${res.status}`);
   }
 
-  // ---- UI helpers ----
-  const statusToCard = {
-    backlog:    { cls: 'card-info'    , title: 'Backlog'     },
-    todo:       { cls: 'card-primary' , title: 'To Do'       },
-    inprogress: { cls: 'card-light'   , title: 'In Progress' },
-    done:       { cls: 'card-success' , title: 'Done'        },
-  };
+  async function apiGetActivity() {
+    try {
+      const res = await fetch(ACTIVITY_API, { credentials: "same-origin" });
+      if (!res.ok) throw new Error("no endpoint");
+      return await res.json();
+    } catch (e) {
+      // graceful fallback: synthesize from tasks (latest 5 updated/created)
+      const copy = tasks.slice().sort((a,b) =>
+        new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0)
+      ).slice(0, 5).map((t, i) => ({
+        id: t.id,
+        text: `Updated task #${t.id || i} — ${t.title || ''}`,
+        created_at: t.updated_at || t.created_at || new Date().toISOString(),
+      }));
+      return copy;
+    }
+  }
 
+  // ---- Date helpers / KPI logic ----
+  function parseISO(d) {
+    if (!d) return null;
+    const s = typeof d === 'string' ? d : String(d);
+    const dt = new Date(s);
+    return isNaN(dt) ? null : dt;
+  }
+  function startOfDay(dt) { const x = new Date(dt); x.setHours(0,0,0,0); return x; }
+  function endOfDay(dt)   { const x = new Date(dt); x.setHours(23,59,59,999); return x; }
+  function dueDate(t)     { return parseISO(t.due_date || t.due); }
+  function isDone(t)      { return (t.status || '').toLowerCase() === 'done'; }
+  function isInProgress(t){ return (t.status || '').toLowerCase() === 'inprogress'; }
+
+  function isDueToday(t) {
+    const d = dueDate(t); if (!d) return false;
+    const now = new Date();
+    return d >= startOfDay(now) && d <= endOfDay(now) && !isDone(t);
+  }
+  function isOverdue(t) {
+    const d = dueDate(t); if (!d) return false;
+    const now = new Date();
+    return d < startOfDay(now) && !isDone(t);
+  }
+
+  function kpiCounts(list) {
+    return {
+      all: list.length,
+      dueToday: list.filter(isDueToday).length,
+      overdue: list.filter(isOverdue).length,
+      inprogress: list.filter(isInProgress).length,
+      done: list.filter(isDone).length,
+    };
+  }
+
+  function updateKpis() {
+    const k = kpiCounts(filteredTasks(tasks));
+    document.getElementById('kpi-all').textContent = k.all;
+    document.getElementById('kpi-due-today').textContent = k.dueToday;
+    document.getElementById('kpi-overdue').textContent = k.overdue;
+    document.getElementById('kpi-inprogress').textContent = k.inprogress;
+    document.getElementById('kpi-done').textContent = k.done;
+
+    // add visual active state
+    document.querySelectorAll('.small-box').forEach(el => el.classList.remove('kpi-active'));
+    if (currentFilter) {
+      const box = document.querySelector(`.small-box[data-kpi="${currentFilter}"]`);
+      if (box) box.classList.add('kpi-active');
+    }
+  }
+
+  // ---- Rendering ----
   function escapeHtml(str) {
-    return (str || '').replace(/[&<>"']/g, m =>
+    return (str || '').toString().replace(/[&<>"']/g, m =>
       ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])
     );
   }
 
-  function taskCardHTML(t) {
-    const meta = statusToCard[t.status] || statusToCard.backlog;
-    const desc = (t.desc || '').trim();
-    return `
-      <div class="card ${meta.cls} card-outline kanban-item" draggable="true" data-id="${t.id}">
-        <div class="card-header">
-          <h5 class="card-title">${escapeHtml(t.title)}</h5>
-          <div class="card-tools">
-            <a class="btn btn-tool btn-link">#${t.order || 0}</a>
-            <a class="btn btn-tool js-edit" title="Edit"><i class="fas fa-pen"></i></a>
-            <a class="btn btn-tool js-delete text-danger" title="Delete"><i class="fas fa-trash"></i></a>
-          </div>
-        </div>
-        ${desc ? `<div class="card-body"><p>${escapeHtml(desc)}</p></div>` : ``}
-      </div>
-    `;
-  }
+  function filteredTasks(list) {
+    let out = list.slice();
 
-  function render() {
-    document.querySelectorAll('.kanban-dropzone').forEach(z => z.innerHTML = '');
-    const byStatus = tasks.reduce((acc, t) => {
-      (acc[t.status] = acc[t.status] || []).push(t);
-      return acc;
-    }, {});
-    Object.entries(byStatus).forEach(([status, list]) => {
-      // keep by order ascending
-      list.sort((a,b) => (a.order||0) - (b.order||0) || a.created_at.localeCompare(b.created_at));
-      const zone = document.querySelector(`.kanban-dropzone[data-dropzone="${status}"]`);
-      if (!zone) return;
-      zone.insertAdjacentHTML('beforeend', list.map(taskCardHTML).join(''));
+    // text search
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      out = out.filter(t =>
+        (t.title || '').toLowerCase().includes(q) ||
+        (t.project || '').toLowerCase().includes(q) ||
+        (t.desc || '').toLowerCase().includes(q)
+      );
+    }
+
+    // KPI filter
+    if (currentFilter === 'due-today')      out = out.filter(isDueToday);
+    else if (currentFilter === 'overdue')   out = out.filter(isOverdue);
+    else if (currentFilter === 'inprogress')out = out.filter(isInProgress);
+    else if (currentFilter === 'done')      out = out.filter(isDone);
+    // 'all' or null -> no extra filter
+
+    // sort by due date (then created)
+    out.sort((a,b) => {
+      const ad = dueDate(a) ? dueDate(a).getTime() : Infinity;
+      const bd = dueDate(b) ? dueDate(b).getTime() : Infinity;
+      if (ad !== bd) return ad - bd;
+      return (a.created_at || '').localeCompare(b.created_at || '');
     });
+
+    return out;
   }
 
-  // ---- CRUD wired to API ----
-  async function loadTasks() {
+  function statusBadge(s) {
+    const v = (s || 'todo').toLowerCase();
+    const map = {
+      todo: 'secondary',
+      inprogress: 'info',
+      done: 'success'
+    };
+    return `<span class="badge badge-${map[v] || 'secondary'} text-nowrap">${escapeHtml(v.replace(/^\w/, c=>c.toUpperCase()))}</span>`;
+  }
+
+  function priorityBadge(p) {
+    const v = (p || 'Medium');
+    const map = { Low:'secondary', Medium:'primary', High:'danger' };
+    return `<span class="badge badge-${map[v] || 'secondary'}">${escapeHtml(v)}</span>`;
+    }
+
+  function dueChip(t) {
+    const d = dueDate(t);
+    if (!d) return '';
+    if (isOverdue(t))      return '<span class="badge badge-danger ml-1">Overdue</span>';
+    if (isDueToday(t))     return '<span class="badge badge-warning ml-1">Due Today</span>';
+    return '';
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('tasksTbody');
+    const rows = filteredTasks(tasks).map(t => `
+      <tr data-id="${t.id}">
+        <td style="width:48px;">
+          <div class="custom-control custom-checkbox">
+            <input type="checkbox" class="custom-control-input js-toggle-done" id="chk-${t.id}" ${isDone(t) ? 'checked' : ''}>
+            <label class="custom-control-label" for="chk-${t.id}"></label>
+          </div>
+        </td>
+        <td>
+          <div class="task-title">${escapeHtml(t.title || '')}</div>
+          ${t.project ? `<small class="text-muted">#${escapeHtml(t.project)}</small>` : ''}
+          ${t.desc ? `<div class="text-muted small">${escapeHtml(t.desc)}</div>` : ''}
+        </td>
+        <td>
+          ${dueDate(t) ? new Date(dueDate(t)).toLocaleDateString() : '-'}
+          ${dueChip(t)}
+        </td>
+        <td>${statusBadge(t.status)}</td>
+        <td>${priorityBadge(t.priority)}</td>
+        <td class="text-right">
+          <button class="btn btn-sm btn-link text-secondary js-edit" title="Edit"><i class="fas fa-pen"></i></button>
+          <button class="btn btn-sm btn-link text-danger js-delete" title="Delete"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
+
+    tbody.innerHTML = rows || `<tr><td colspan="6" class="text-center text-muted p-4">No tasks found.</td></tr>`;
+  }
+
+  function renderActivity() {
+    const ul = document.getElementById('activityList');
+    ul.innerHTML = activities.map(a => `
+      <li class="py-2">
+        <i class="far fa-dot-circle mr-2"></i>
+        ${escapeHtml(a.text || '')}
+        <small class="text-muted ml-1">(${timeAgo(a.created_at)})</small>
+      </li>
+    `).join('');
+  }
+
+  function timeAgo(iso) {
+    const d = parseISO(iso) || new Date();
+    const s = Math.max(1, Math.floor((Date.now() - d.getTime()) / 1000));
+    const units = [
+      ['y', 31536000], ['mo', 2592000], ['w', 604800],
+      ['d', 86400], ['h', 3600], ['m', 60], ['s', 1]
+    ];
+    for (const [label, sec] of units) {
+      const v = Math.floor(s / sec);
+      if (v >= 1) return `${v}${label} ago`;
+    }
+    return 'just now';
+  }
+
+  function updateUI() {
+    renderTable();
+    updateKpis();
+  }
+
+  // ---- CRUD wired to UI ----
+  async function loadData() {
     tasks = await apiGet();
-    render();
+    activities = await apiGetActivity();
+    updateUI();
+    renderActivity();
   }
 
   async function addTask(data) {
     const created = await apiPost({
       title: data.title,
       desc:  data.desc || '',
-      status: data.status || 'backlog',
+      status: data.status || 'todo',
+      due_date: data.due || null,
+      project: data.project || '',
+      priority: data.priority || 'Medium'
     });
     tasks.push(created);
-    render();
+    updateUI();
   }
 
   async function updateTask(id, patch) {
     const updated = await apiPatch(id, patch);
     const idx = tasks.findIndex(t => t.id === id);
     if (idx !== -1) tasks[idx] = updated;
-    render();
+    updateUI();
   }
 
   async function deleteTask(id) {
     await apiDelete(id);
     tasks = tasks.filter(t => t.id !== id);
-    render();
+    updateUI();
   }
 
-  // ---- Drag & drop -> change status ----
-  function onDragStart(e) {
-    const item = e.target.closest('.kanban-item');
-    if (!item) return;
-    dragId = item.dataset.id;
-    item.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-  }
-  function onDragEnd(e) {
-    const item = e.target.closest('.kanban-item');
-    if (item) item.classList.remove('dragging');
-    dragId = null;
-    document.querySelectorAll('.kanban-dropzone').forEach(el => el.classList.remove('drop-hover'));
-  }
-  async function onDrop(e) {
-    const zone = e.target.closest('.kanban-dropzone');
-    if (!zone || !dragId) return;
-    e.preventDefault();
-    zone.classList.remove('drop-hover');
-    const newStatus = zone.dataset.dropzone;
-    // For simplicity now we just update status; ordering can be enhanced later
-    await updateTask(dragId, { status: newStatus });
-  }
-  function onDragOver(e) {
-    const zone = e.target.closest('.kanban-dropzone');
-    if (!zone) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    zone.classList.add('drop-hover');
-  }
-  function onDragLeave(e) {
-    const zone = e.target.closest('.kanban-dropzone');
-    if (zone) zone.classList.remove('drop-hover');
-  }
-
-  // ---- Modal wiring ----
-  function openModal({mode, task, defaultStatus}) {
-    const titleEl = document.getElementById('taskTitle');
-    const descEl  = document.getElementById('taskDesc');
-    const idEl    = document.getElementById('taskId');
-    const statusEl= document.getElementById('taskStatus');
-    document.getElementById('taskModalTitle').textContent = mode === 'edit' ? 'Edit Task' : 'Add Task';
-    if (mode === 'edit' && task) {
-      idEl.value = task.id;
-      titleEl.value = task.title || '';
-      descEl.value = task.desc || '';
-      statusEl.value = task.status || 'backlog';
-    } else {
-      idEl.value = '';
-      titleEl.value = '';
-      descEl.value = '';
-      statusEl.value = defaultStatus || 'backlog';
-    }
-    $('#taskModal').modal('show');
-    setTimeout(() => titleEl.focus(), 150);
-  }
-
+  // ---- Events ----
   // Add Task button
-  document.getElementById('btn-add-task').addEventListener('click', () => {
-    openModal({ mode: 'add', defaultStatus: 'backlog' });
-  });
+  document.getElementById('btn-add-task').addEventListener('click', () => openModal({ mode: 'add' }));
 
   // Submit modal
   document.getElementById('taskForm').addEventListener('submit', async function (e) {
@@ -317,42 +500,107 @@
     const title = document.getElementById('taskTitle').value.trim();
     const desc = document.getElementById('taskDesc').value.trim();
     const status = document.getElementById('taskStatus').value;
+    const due = document.getElementById('taskDue').value;
+    const project = document.getElementById('taskProject').value.trim();
+    const priority = document.getElementById('taskPriority').value;
+
     if (!title) return;
+
     if (id) {
-      await updateTask(id, { title, desc, status });
+      await updateTask(id, { title, desc, status, due_date: due || null, project, priority });
     } else {
-      await addTask({ title, desc, status });
+      await addTask({ title, desc, status, due, project, priority });
     }
     $('#taskModal').modal('hide');
   });
 
-  // Delegated edit/delete + drag listeners
+  // KPI click -> filter toggle
+  document.addEventListener('click', (e) => {
+    const box = e.target.closest('.small-box[data-kpi]');
+    if (!box) return;
+    const key = box.getAttribute('data-kpi');
+    currentFilter = (currentFilter === key || key === 'all') ? null : key; // 'all' resets
+    updateUI();
+  });
+
+  // Edit/Delete/Checkbox
   document.addEventListener('click', function (e) {
     const editBtn = e.target.closest('.js-edit');
     const delBtn  = e.target.closest('.js-delete');
-    if (editBtn) {
-      const card = editBtn.closest('.kanban-item');
-      const t = tasks.find(x => x.id === card.dataset.id);
+    const row = e.target.closest('tr[data-id]');
+
+    if (editBtn && row) {
+      const t = tasks.find(x => String(x.id) === String(row.dataset.id));
       if (t) openModal({ mode: 'edit', task: t });
     }
-    if (delBtn) {
-      const card = delBtn.closest('.kanban-item');
-      const id = card.dataset.id;
+    if (delBtn && row) {
+      const id = row.dataset.id;
       if (confirm('Delete this task?')) deleteTask(id).catch(console.error);
     }
   });
 
-  document.addEventListener('dragstart', onDragStart);
-  document.addEventListener('dragend', onDragEnd);
-  document.querySelectorAll('.kanban-dropzone').forEach(zone => {
-    zone.addEventListener('dragover', onDragOver);
-    zone.addEventListener('dragleave', onDragLeave);
-    zone.addEventListener('drop', onDrop);
+  document.addEventListener('change', function (e) {
+    const chk = e.target.closest('.js-toggle-done');
+    if (!chk) return;
+    const row = chk.closest('tr[data-id]');
+    const id = row.dataset.id;
+    updateTask(id, { status: chk.checked ? 'done' : 'todo' });
   });
 
+  // Search
+  document.getElementById('btnSearch').addEventListener('click', () => {
+    searchTerm = document.getElementById('searchInput').value.trim();
+    updateUI();
+  });
+  document.getElementById('searchInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      searchTerm = e.target.value.trim();
+      updateUI();
+    }
+  });
+
+  // "View all" simply clears current filter
+  document.getElementById('viewAllLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    currentFilter = null;
+    updateUI();
+  });
+
+  // ---- Modal wired up ----
+  function openModal({mode, task}) {
+    const titleEl = document.getElementById('taskTitle');
+    const descEl  = document.getElementById('taskDesc');
+    const dueEl   = document.getElementById('taskDue');
+    const idEl    = document.getElementById('taskId');
+    const statusEl= document.getElementById('taskStatus');
+    const projEl  = document.getElementById('taskProject');
+    const prioEl  = document.getElementById('taskPriority');
+
+    document.getElementById('taskModalTitle').textContent = mode === 'edit' ? 'Edit Task' : 'Add Task';
+
+    if (mode === 'edit' && task) {
+      idEl.value = task.id;
+      titleEl.value = task.title || '';
+      descEl.value = task.desc || '';
+      statusEl.value = task.status || 'todo';
+      projEl.value = task.project || '';
+      prioEl.value = task.priority || 'Medium';
+      const d = dueDate(task); dueEl.value = d ? d.toISOString().slice(0,10) : '';
+    } else {
+      idEl.value = '';
+      titleEl.value = '';
+      descEl.value = '';
+      statusEl.value = 'todo';
+      projEl.value = '';
+      prioEl.value = 'Medium';
+      dueEl.value = '';
+    }
+    $('#taskModal').modal('show');
+    setTimeout(() => titleEl.focus(), 150);
+  }
+
   // Initial load
-  loadTasks().catch(err => console.error("Load tasks failed:", err));
+  loadData().catch(err => console.error("Load failed:", err));
 })();
 </script>
-
 {% endblock extra_scripts %}
